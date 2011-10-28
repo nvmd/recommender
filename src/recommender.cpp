@@ -27,6 +27,8 @@ int main(int argc, char **argv)
 			avg_product_ratings[j] += users_ratings(i,j);
 		}
 	}
+	avg_users_rating /= avg_users_rating.size();
+	avg_product_ratings /= avg_product_ratings.size();
 	
 	// GroupLens
 	itpp::mat grouplens_predict(users_ratings.rows(),users_ratings.cols());
