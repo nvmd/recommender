@@ -6,7 +6,7 @@ INCLUDES = -I inc -I $(HOME)/develop.lib/itpp-4.2.0/include -I $(HOME)/develop.l
 DEBUG_DEFS = -D_DEBUG
 
 CXX = g++
-CXXFLAGS = -Wall -std=c++0x -pedantic -O0 -g $(INCLUDES) $(DEBUG_DEFS)
+CXXFLAGS = -Wall -Wextra -std=c++0x -pedantic -O0 -g $(INCLUDES) $(DEBUG_DEFS)
 LDFLAGS = $(LIBS)
 
 
