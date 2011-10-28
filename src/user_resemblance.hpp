@@ -52,4 +52,3 @@ float cosine_angle(const R &user1, const R &user2, const P &avg_prod_ratings)
 
 	return numer/denom;
 }
-

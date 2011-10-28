@@ -21,11 +21,13 @@ obj/recommender.o: src/recommender.cpp
 .PHONY: bin-package clean clean-all rebuild prepare
 doc:
 	doxygen doc/Doxyfile
-bin-package: clean all
-	mkdir pkg
-	cp $(TARGET) pkg
-	cp -r data pkg
-	tar -cjvf $(TARGET).tar.bz2 -C pkg/*
+bin-package: clean-all all
+	$(eval PACKAGE_NAME := $(TARGET)-0.0.1)
+	$(eval PACKAGE_TMP_DIR := pkg/$(PACKAGE_NAME))
+	-mkdir -p $(PACKAGE_TMP_DIR)
+	cp $(TARGET) $(PACKAGE_TMP_DIR)
+	-cp -r data $(PACKAGE_TMP_DIR)
+	tar -cjvf $(PACKAGE_NAME).tar.bz2 -C pkg $(PACKAGE_NAME)
 	rm -rf pkg
 clean: 
 	-rm -f core $(TARGET)
