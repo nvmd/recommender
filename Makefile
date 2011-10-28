@@ -34,7 +34,7 @@ clean:
 	-rm -f src/*.o src/*.gch inc/*.gch
 	-rm -rf bin/* obj/*
 clean-all: clean
-	-rm -f *~ src/*~ inc/*~
+	-rm -f *~ src/*~ inc/*~ doc/*~
 	-rmdir bin obj
 rebuild: clean all
 prepare: 
