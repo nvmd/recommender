@@ -1,18 +1,23 @@
 
 TARGET = recommender
-LIBS = -L$(HOME)/develop.lib/itpp-4.2.0/lib -litpp_debug
+LIBS = -litpp_debug
+LIBS = -litpp
+#DEFINES = -D_DEBUG
+#DEFINES = 
+LIB_PATH = -L$(HOME)/develop.lib/itpp-4.2.0/lib
 INCLUDES = -I inc -I $(HOME)/develop.lib/itpp-4.2.0/include -I $(HOME)/develop.lib/libkdtree-master/include
-#DEBUG_DEFS = 
-DEBUG_DEFS = -D_DEBUG
+
+CXX_OPT_FLAGS = -O0
+CXX_OPT_FLAGS = -O3 -march=native
 
 CXX = g++
-CXXFLAGS = -Wall -Wextra -std=c++0x -pedantic -O0 -g $(INCLUDES) $(DEBUG_DEFS)
-LDFLAGS = $(LIBS)
+CXXFLAGS = -Wall -Wextra -std=c++0x -pedantic -g -pipe $(CXX_OPT_FLAGS) $(INCLUDES) $(DEFINES)
+LDFLAGS = $(LIB_PATH) $(LIBS)
 
 
 all: prepare $(TARGET)
 
-$(TARGET): obj/recommender.o
+$(TARGET): obj/recommender.o src/error.hpp src/grouplens.hpp src/user_resemblance.hpp
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $?
 obj/recommender.o: src/recommender.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@

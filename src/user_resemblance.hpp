@@ -15,15 +15,24 @@ float correlation_coeff(const R &user1, const R &user2, const P &avg_prod_rating
 	float user2r_sq_sum = 0;
 	
 	// for each product
-	for (size_t i=0; i<avg_prod_ratings.size(); ++i)
-	{
-		float user1r = user1[i] - avg_prod_ratings[i];
-		float user2r = user2[i] - avg_prod_ratings[i];
-		numer += user1r*user2r;
-
-		user1r_sq_sum += user1r*user1r;
-		user2r_sq_sum += user2r*user2r;
-	}
+// 	for (size_t i=0; i<avg_prod_ratings.size(); ++i)
+// 	{
+// 		float user1r = user1[i] - avg_prod_ratings[i];
+// 		float user2r = user2[i] - avg_prod_ratings[i];
+// 		numer += user1r*user2r;
+// 
+// 		user1r_sq_sum += user1r*user1r;
+// 		user2r_sq_sum += user2r*user2r;
+// 	}
+	
+	R user1r = user1 - avg_prod_ratings;
+	R user2r = user2 - avg_prod_ratings;
+	//element-wise multiplication of user1r and user2r followed by summation of resultant elements
+	numer = elem_mult_sum(user1r, user2r);
+	//element-wise square of user1r followed by summation of resultant elements
+	user1r_sq_sum = elem_mult_sum(user1r, user1r);
+	//element-wise square of user2r followed by summation of resultant elements
+	user2r_sq_sum = elem_mult_sum(user2r, user2r);
 	
 	denom = sqrt(user1r_sq_sum)*sqrt(user2r_sq_sum);
 
