@@ -30,9 +30,9 @@ float correlation_coeff(const R &user1, const R &user2, const P &avg_prod_rating
 	//element-wise multiplication of user1r and user2r followed by summation of resultant elements
 	numer = elem_mult_sum(user1r, user2r);
 	//element-wise square of user1r followed by summation of resultant elements
-	user1r_sq_sum = elem_mult_sum(user1r, user1r);
+	user1r_sq_sum = sum_sqr(user1r);
 	//element-wise square of user2r followed by summation of resultant elements
-	user2r_sq_sum = elem_mult_sum(user2r, user2r);
+	user2r_sq_sum = sum_sqr(user2r);
 	
 	denom = sqrt(user1r_sq_sum)*sqrt(user2r_sq_sum);
 
