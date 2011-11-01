@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 		itpp::mat nearest_neighbours;
 		std::vector<itpp::vec> neighbours;
 		
-		tree.find_within_range(users_ratings.get_row(i), 10, 
+		tree.find_within_range(users_ratings.get_row(i), 3, 
 				std::back_insert_iterator<std::vector<itpp::vec>>(neighbours));
 		std::for_each(neighbours.begin(), neighbours.end(), 
 					  [&nearest_neighbours](const itpp::vec &v){
