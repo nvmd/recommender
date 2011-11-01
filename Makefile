@@ -1,13 +1,12 @@
 
 TARGET = recommender
-LIBS = -litpp_debug
+#LIBS = -litpp_debug
 LIBS = -litpp
-#DEFINES = -D_DEBUG
-#DEFINES = 
+DEFINES = -DALG_ITPP_IMPL -D_DEBUG
 LIB_PATH = -L$(HOME)/develop.lib/itpp-4.2.0/lib
 INCLUDES = -I inc -I $(HOME)/develop.lib/itpp-4.2.0/include -I $(HOME)/develop.lib/libkdtree-master/include
 
-CXX_OPT_FLAGS = -O0
+#CXX_OPT_FLAGS = -O0
 CXX_OPT_FLAGS = -O3 -march=native
 
 CXX = g++
