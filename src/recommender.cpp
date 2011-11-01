@@ -69,14 +69,16 @@ int main(int argc, char **argv)
 	avg_users_rating.zeros();
 	avg_product_ratings.zeros();
 	// Average user's ratings and product's ratings
-// 	for (size_t i=0; i<users_ratings.rows(); ++i)
-// 	{
-// 		for (size_t j=0; j<users_ratings.cols(); ++j)
-// 		{
-// 			avg_users_rating[i] += users_ratings(i,j);
-// 			avg_product_ratings[j] += users_ratings(i,j);
-// 		}
-// 	}
+#if defined(ALG_REF_IMPL)
+	for (size_t i=0; i<users_ratings.rows(); ++i)
+	{
+		for (size_t j=0; j<users_ratings.cols(); ++j)
+		{
+			avg_users_rating[i] += users_ratings(i,j);
+			avg_product_ratings[j] += users_ratings(i,j);
+		}
+	}
+#else
 	for (size_t i=0; i<users_ratings.rows(); ++i)
 	{
 		avg_users_rating[i] = itpp::sum(users_ratings.get_row(i));
@@ -85,7 +87,7 @@ int main(int argc, char **argv)
 	{
 		avg_product_ratings[j] = itpp::sum(users_ratings.get_col(j));
 	}
-	
+#endif
 	avg_users_rating /= avg_users_rating.size();
 	avg_product_ratings /= avg_product_ratings.size();
 	std::cout << "Done." << std::endl;
