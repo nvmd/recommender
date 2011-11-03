@@ -1,6 +1,7 @@
 
 #include <cstddef>
 #include <iostream>
+#include <list>
 
 #include <itpp/itbase.h>
 #include <itpp/base/vec.h>
@@ -33,41 +34,17 @@ struct csv_locale_facet : std::ctype<char>
 	}
 };
 
-int main(int argc, char **argv)
+struct dataset_triplet_t
 {
-	itpp::mat users_ratings(2176,5636);
-	users_ratings.zeros();
-	
-	std::cout << "Reading dataset...";
 	size_t user;
 	size_t product;
 	float rating;
-	if (setvbuf(stdout, NULL, _IONBF, 0) != 0)	// unbuffered
-	//if (setvbuf(stdout, NULL, _IOLBF, 0) != 0)	// line buffering of stdout
-	{
-		perror("setvbuf");
-	}
-	std::cin.imbue(std::locale(std::locale(), new csv_locale_facet()));
-	while (std::cin >> user >> product >> rating)
-	{
-		std::cout << "(" << user << "," << product << ") -> " << rating << std::endl;
-		if (user >= users_ratings.rows() || product >= users_ratings.cols())
-		{
-			std::cout << "Resizing user's ratings matrix...";
-			users_ratings.set_size(user+1, product+1, true);
-			std::cout << "Done." << std::endl;
-		}
-		users_ratings(user,product) = rating;
-	}
-	std::cout << "Done." << std::endl;
-	itpp::it_file users_ratings_file("users_ratings.it");
-	users_ratings_file << itpp::Name("users_ratings") << users_ratings;
-	
-	std::cout << "Average user's and product's ratings...";
-	itpp::vec avg_users_rating(users_ratings.rows());
-	itpp::vec avg_product_ratings(users_ratings.cols());
-	avg_users_rating.zeros();
-	avg_product_ratings.zeros();
+};
+
+template <class M, class V>
+void avg_ratings(const M &users_ratings, 
+					V &avg_users_rating, V &avg_product_ratings)
+{
 	// Average user's ratings and product's ratings
 #if defined(ALG_REF_IMPL)
 	for (size_t i=0; i<users_ratings.rows(); ++i)
@@ -90,47 +67,13 @@ int main(int argc, char **argv)
 #endif
 	avg_users_rating /= avg_users_rating.size();
 	avg_product_ratings /= avg_product_ratings.size();
-	std::cout << "Done." << std::endl;
-	
-	itpp::it_file avg_users_rating_file("avg_users_rating.it");
-	avg_users_rating_file << itpp::Name("avg_users_rating") << avg_users_rating;
-	itpp::it_file avg_product_ratings_file("avg_product_ratings.it");
-	avg_product_ratings_file << itpp::Name("avg_product_ratings") << avg_product_ratings;
-	
-	itpp::mat user_resemblance(users_ratings.rows(),users_ratings.rows());
-	user_resemblance.zeros();
-	std::cout << "User resemblance...";
-	for (size_t i=0; i<user_resemblance.rows(); ++i)
-	{	//matrix is symmetric
-		for (size_t j=i; j<user_resemblance.cols(); ++j)
-		{
-			user_resemblance(i,j) = correlation_coeff(users_ratings.get_row(i), 
-													  users_ratings.get_row(j), 
-													  avg_product_ratings);
-			user_resemblance(j,i) = user_resemblance(i,j);
-			std::cout << "(" << i << "," << j << ") -> " << user_resemblance(i,j) << std::endl;
-		}
-	}
-	std::cout << "Done." << std::endl;
-	itpp::it_file user_resemblance_file("user_resemblance.it");
-	user_resemblance_file << itpp::Name("user_resemblance") << user_resemblance;
-	
-	std::cout << "GroupLens...";
-	// GroupLens
-	itpp::mat grouplens_predict(users_ratings.rows(),users_ratings.cols());
-	for (size_t i=0; i<users_ratings.rows(); ++i)	// users
-	{
-		for (size_t j=0; j<users_ratings.cols(); ++j)	// products
-		{
-			grouplens_predict(i,j) = grouplens(avg_product_ratings, 
-										users_ratings, 
-										avg_users_rating, i, j, 
-										user_resemblance);
-		}
-	}
-	std::cout << "Done." << std::endl;
-	
-	std::cout << "k-NN...";
+}
+
+template <class M, class V>
+void knn(M &knn_predict, size_t k, 
+			const M &users_ratings, const M &user_resemblance, 
+			const V &avg_users_rating, const V &avg_product_ratings)
+{
 	// k-NN
 	KDTree::KDTree<3,itpp::vec> tree;
 	for (size_t i=0; i<users_ratings.rows(); ++i)	//users
@@ -138,13 +81,12 @@ int main(int argc, char **argv)
 		tree.insert(users_ratings.get_row(i));
 	}
 	
-	itpp::mat knn_predict(users_ratings.rows(),users_ratings.cols());
 	for (size_t i=0; i<users_ratings.rows(); ++i)	//users
 	{
 		itpp::mat nearest_neighbours;
 		std::vector<itpp::vec> neighbours;
 		
-		tree.find_within_range(users_ratings.get_row(i), 3, 
+		tree.find_within_range(users_ratings.get_row(i), k, 
 				std::back_insert_iterator<std::vector<itpp::vec>>(neighbours));
 		std::for_each(neighbours.begin(), neighbours.end(), 
 					  [&nearest_neighbours](const itpp::vec &v){
@@ -159,8 +101,69 @@ int main(int argc, char **argv)
 										user_resemblance);
 		}
 	}
+}
+
+int main(int argc, char **argv)
+{
+	if (setvbuf(stdout, NULL, _IONBF, 0) != 0)	// unbuffered
+	//if (setvbuf(stdout, NULL, _IOLBF, 0) != 0)	// line buffering of stdout
+	{
+		perror("setvbuf");
+	}
+	
+	std::cout << "Reading dataset...";
+	std::cin.imbue(std::locale(std::locale(), new csv_locale_facet()));
+	std::list<dataset_triplet_t> triplet_list;
+	dataset_triplet_t triplet;
+	while (std::cin >> triplet.user >> triplet.product >> triplet.rating)
+	{
+		std::cout << "(" << triplet.user << "," << triplet.product << ") -> " << triplet.rating << std::endl;
+		triplet_list.push_back(triplet);
+	}
+	std::cout << "Done." << std::endl;
+
+	itpp::mat users_ratings(2176,5636);
+	users_ratings.zeros();
+	itpp::it_file users_ratings_file("users_ratings.it");
+	users_ratings_file << itpp::Name("users_ratings") << users_ratings;
+	
+	std::cout << "Average user's and product's ratings...";
+	itpp::vec avg_users_rating(users_ratings.rows());
+	itpp::vec avg_product_ratings(users_ratings.cols());
+	avg_users_rating.zeros();
+	avg_product_ratings.zeros();
+	avg_ratings(users_ratings, avg_users_rating, avg_product_ratings);
 	std::cout << "Done." << std::endl;
 	
+	itpp::it_file avg_users_rating_file("avg_users_rating.it");
+	avg_users_rating_file << itpp::Name("avg_users_rating") << avg_users_rating;
+	itpp::it_file avg_product_ratings_file("avg_product_ratings.it");
+	avg_product_ratings_file << itpp::Name("avg_product_ratings") << avg_product_ratings;
+	
+	// Users' resemblance
+	std::cout << "Users' resemblance...";
+	itpp::mat user_resemblance(users_ratings.rows(), users_ratings.rows());
+	user_resemblance.zeros();
+	user_resembl(users_ratings, user_resemblance, correlation_coeff_resembl_metric_t<itpp::vec>(avg_product_ratings));
+	std::cout << "Done." << std::endl;
+	itpp::it_file user_resemblance_file("user_resemblance.it");
+	user_resemblance_file << itpp::Name("user_resemblance") << user_resemblance;
+	
+	// GroupLens
+	std::cout << "GroupLens...";
+	itpp::mat grouplens_predict(users_ratings.rows(), users_ratings.cols());
+	grouplens_predict.zeros();
+	grouplens(grouplens_predict, users_ratings, user_resemblance, avg_users_rating, avg_product_ratings);
+	std::cout << "Done." << std::endl;
+	
+	// k-NN
+	std::cout << "k-NN...";
+	itpp::mat knn_predict(users_ratings.rows(), users_ratings.cols());
+	knn_predict.zeros();
+	knn(knn_predict, 3, users_ratings, user_resemblance, avg_users_rating, avg_product_ratings);
+	std::cout << "Done." << std::endl;
+	
+	// Output results
 	itpp::mat realdata(users_ratings);
 	std::cout << "Real data: \n" << realdata << std::endl;
 	
