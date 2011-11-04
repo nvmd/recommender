@@ -1,7 +1,7 @@
 
 #include <cstddef>
 #include <iostream>
-#include <list>
+#include <vector>
 
 #include <itpp/itbase.h>
 #include <itpp/base/vec.h>
@@ -74,7 +74,6 @@ void knn(M &knn_predict, size_t k,
 			const M &users_ratings, const M &user_resemblance, 
 			const V &avg_users_rating, const V &avg_product_ratings)
 {
-	// k-NN
 	KDTree::KDTree<3,itpp::vec> tree;
 	for (size_t i=0; i<users_ratings.rows(); ++i)	//users
 	{
@@ -103,6 +102,109 @@ void knn(M &knn_predict, size_t k,
 	}
 }
 
+template <class T>
+void cross_validation_get_sets(const T &triplets, T &validation, T &learning, float validation_rel_size = 0.9)
+{
+	size_t triplets_count = triplets.size();
+	size_t validation_size = triplets_count * validation_rel_size;
+	size_t learning_size = triplets_count - validation_size;
+
+	validation.reserve(validation_size);
+	learning.reserve(learning_size);
+
+	size_t i = 0;
+	while (i<validation_size)
+	{
+		validation.push_back(triplets[i]);
+		++i;
+	}
+	while (i<triplets_count)
+	{
+		learning.push_back(triplets[i]);
+		++i;
+	}
+}
+
+template <class M, class T>
+void convert_triplets_to_matrix(M &matrix, const T &triplets)
+{
+	std::for_each(triplets.begin(), triplets.end(), 
+		[&matrix](const T::value_type &x){
+			if (x.user > matrix.rows() || x.product > matrix.cols())
+			{
+				std::cout << "convert_triplets_to_matrix: resizing matrix" << std::endl;
+				matrix.set_size(x.user+1, x.product+1, true);
+			}
+			matrix(x.user, x.product) = x.rating;
+	});
+}
+
+template <class T>
+void cross_validation(const T &triplets)
+{
+	T validation_triplets;
+	T learning_triplets;
+	std::cout << "Generating cross-validation data sets...";
+	cross_validation_get_sets(triplets, validation_triplets, learning_triplets, 0.9);
+	std::cout << "Done." << std::endl;
+	
+	itpp::mat learning(2176, 5636);
+	itpp::mat validation(2176, 5636);
+	learning.zeros();
+	validation.zeros();
+
+	std::cout << "Converting triplets to matrices...";
+	convert_triplets_to_matrix(learning, learning_triplets);
+	convert_triplets_to_matrix(validation, validation_triplets);
+	std::cout << "Done." << std::endl;
+
+	// Average user's and product's ratings
+	std::cout << "Average user's and product's ratings...";
+	itpp::vec avg_users_rating(learning.rows());
+	itpp::vec avg_product_ratings(learning.cols());
+	avg_users_rating.zeros();
+	avg_product_ratings.zeros();
+	avg_ratings(learning, avg_users_rating, avg_product_ratings);
+	std::cout << "Done." << std::endl;
+	
+	// Users' resemblance
+	std::cout << "Users' resemblance...";
+	itpp::mat user_resemblance(learning.rows(), learning.rows());
+	user_resemblance.zeros();
+	user_resembl(learning, user_resemblance, correlation_coeff_resembl_metric_t<itpp::vec>(avg_product_ratings));
+	std::cout << "Done." << std::endl;
+	
+	// GroupLens
+	std::cout << "GroupLens...";
+	itpp::mat grouplens_predict(learning.rows(), learning.cols());
+	grouplens_predict.zeros();
+	grouplens(grouplens_predict, learning, user_resemblance, avg_users_rating, avg_product_ratings);
+	std::cout << "Done." << std::endl;
+	
+	// k-NN
+	std::cout << "k-NN...";
+	itpp::mat knn_predict(learning.rows(), learning.cols());
+	knn_predict.zeros();
+	knn(knn_predict, 3, learning, user_resemblance, avg_users_rating, avg_product_ratings);
+	std::cout << "Done." << std::endl;
+	
+	// Validation
+	// validation and learning data should be of equal dimensions
+	validation.set_size(learning.rows(), learning.cols(), true);
+
+	float grouplens_rmse = rmse(validation, grouplens_predict);
+	float knn_rmse = rmse(validation, knn_predict);
+
+	// Output results
+	std::cout << "Validation data: \n" << validation << std::endl;
+	
+	std::cout << "GroupLens: \n" << grouplens_predict << std::endl;
+	std::cout << "RMSE: \n" << grouplens_rmse << std::endl;
+	
+	std::cout << "k-NN: \n" << knn_predict << std::endl;
+	std::cout << "RMSE: \n" << knn_rmse << std::endl;
+}
+
 int main(int argc, char **argv)
 {
 	if (setvbuf(stdout, NULL, _IONBF, 0) != 0)	// unbuffered
@@ -113,7 +215,8 @@ int main(int argc, char **argv)
 	
 	std::cout << "Reading dataset...";
 	std::cin.imbue(std::locale(std::locale(), new csv_locale_facet()));
-	std::list<dataset_triplet_t> triplet_list;
+	std::vector<dataset_triplet_t> triplet_list;
+	triplet_list.reserve(3000);
 	dataset_triplet_t triplet;
 	while (std::cin >> triplet.user >> triplet.product >> triplet.rating)
 	{
@@ -122,56 +225,7 @@ int main(int argc, char **argv)
 	}
 	std::cout << "Done." << std::endl;
 
-	itpp::mat users_ratings(2176,5636);
-	users_ratings.zeros();
-	itpp::it_file users_ratings_file("users_ratings.it");
-	users_ratings_file << itpp::Name("users_ratings") << users_ratings;
-	
-	std::cout << "Average user's and product's ratings...";
-	itpp::vec avg_users_rating(users_ratings.rows());
-	itpp::vec avg_product_ratings(users_ratings.cols());
-	avg_users_rating.zeros();
-	avg_product_ratings.zeros();
-	avg_ratings(users_ratings, avg_users_rating, avg_product_ratings);
-	std::cout << "Done." << std::endl;
-	
-	itpp::it_file avg_users_rating_file("avg_users_rating.it");
-	avg_users_rating_file << itpp::Name("avg_users_rating") << avg_users_rating;
-	itpp::it_file avg_product_ratings_file("avg_product_ratings.it");
-	avg_product_ratings_file << itpp::Name("avg_product_ratings") << avg_product_ratings;
-	
-	// Users' resemblance
-	std::cout << "Users' resemblance...";
-	itpp::mat user_resemblance(users_ratings.rows(), users_ratings.rows());
-	user_resemblance.zeros();
-	user_resembl(users_ratings, user_resemblance, correlation_coeff_resembl_metric_t<itpp::vec>(avg_product_ratings));
-	std::cout << "Done." << std::endl;
-	itpp::it_file user_resemblance_file("user_resemblance.it");
-	user_resemblance_file << itpp::Name("user_resemblance") << user_resemblance;
-	
-	// GroupLens
-	std::cout << "GroupLens...";
-	itpp::mat grouplens_predict(users_ratings.rows(), users_ratings.cols());
-	grouplens_predict.zeros();
-	grouplens(grouplens_predict, users_ratings, user_resemblance, avg_users_rating, avg_product_ratings);
-	std::cout << "Done." << std::endl;
-	
-	// k-NN
-	std::cout << "k-NN...";
-	itpp::mat knn_predict(users_ratings.rows(), users_ratings.cols());
-	knn_predict.zeros();
-	knn(knn_predict, 3, users_ratings, user_resemblance, avg_users_rating, avg_product_ratings);
-	std::cout << "Done." << std::endl;
-	
-	// Output results
-	itpp::mat realdata(users_ratings);
-	std::cout << "Real data: \n" << realdata << std::endl;
-	
-	std::cout << "GroupLens: \n" << grouplens_predict << std::endl;
-	std::cout << "RMSE: \n" << rmse(grouplens_predict, realdata) << std::endl;
-	
-	std::cout << "k-NN: \n" << knn_predict << std::endl;
-	std::cout << "RMSE: \n" << rmse(knn_predict, realdata) << std::endl;
-	
+	cross_validation(triplet_list);
+
 	return 0;
 }
