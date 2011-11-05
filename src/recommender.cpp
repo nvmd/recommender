@@ -8,6 +8,7 @@
 #include <itpp/base/mat.h>
 
 #include <kdtree++/kdtree.hpp>
+#include <tclap/CmdLine.h>
 
 #include "user_resemblance.hpp"
 #include "grouplens.hpp"
@@ -69,12 +70,48 @@ void avg_ratings(const M &users_ratings,
 	avg_product_ratings /= avg_product_ratings.size();
 }
 
+template <class R, class M>
+class kdtree_distance_t
+{
+public:
+	kdtree_distance_t(const R &avg_product_ratings, M &resemblance)
+		:m_avg_product_ratings(avg_product_ratings), 
+		m_resemblance(resemblance)
+	{}
+	template <class U>
+	float operator()(const U &user1, const U &user2) const
+	{
+		float c = 0;
+		if (!false)	//TODO: if not present in 'm_resemblance' matrix
+		{
+			c = correlation_coeff(user1, user2, m_avg_product_ratings);
+			m_resemblance(user1, user2) = c;
+			m_resemblance(user2, user1) = c;
+		}
+		else
+		{
+			c = m_resemblance(user1, user2);
+		}
+		return c*c;
+	}
+	typedef float distance_type;
+private:
+	const R &m_avg_product_ratings;
+	M &m_resemblance;
+};
+
 template <class M, class V>
 void knn(M &knn_predict, size_t k, 
-			const M &users_ratings, const M &user_resemblance, 
+			const M &users_ratings, const M &user_resemblance_unused, 
 			const V &avg_users_rating, const V &avg_product_ratings)
 {
-	KDTree::KDTree<3,itpp::vec> tree;
+	M user_resemblance(user_resemblance_unused.rows(), user_resemblance_unused.cols());
+	user_resemblance.zeros();
+	KDTree::KDTree<3, itpp::vec, KDTree::_Bracket_accessor<itpp::vec>, 
+					kdtree_distance_t<itpp::vec, itpp::mat> > 
+				tree(KDTree::_Bracket_accessor<itpp::vec>(), 
+						kdtree_distance_t<itpp::vec, itpp::mat>
+						(avg_product_ratings, user_resemblance));
 	for (size_t i=0; i<users_ratings.rows(); ++i)	//users
 	{
 		tree.insert(users_ratings.get_row(i));
@@ -126,11 +163,15 @@ void cross_validation_get_sets(const T &triplets, T &validation, T &learning, fl
 }
 
 template <class M, class T>
-void convert_triplets_to_matrix(M &matrix, const T &triplets)
+void convert_triplets_to_matrix(M &matrix, const T &triplets, 
+								const typename T::value_type &max_triplet_values)
 {
+	matrix.set_size(max_triplet_values.user+1, max_triplet_values.product+1);
+	matrix.zeros();
+
 	std::for_each(triplets.begin(), triplets.end(), 
 		[&matrix](const T::value_type &x){
-			if (x.user > matrix.rows() || x.product > matrix.cols())
+			if (x.user >= matrix.rows() || x.product >= matrix.cols())
 			{
 				std::cout << "convert_triplets_to_matrix: resizing matrix" << std::endl;
 				matrix.set_size(x.user+1, x.product+1, true);
@@ -140,7 +181,9 @@ void convert_triplets_to_matrix(M &matrix, const T &triplets)
 }
 
 template <class T>
-void cross_validation(const T &triplets)
+void cross_validation(const T &triplets, 
+						const typename T::value_type &max_triplet_values, 
+						bool prefer_cached_data)
 {
 	T validation_triplets;
 	T learning_triplets;
@@ -148,14 +191,14 @@ void cross_validation(const T &triplets)
 	cross_validation_get_sets(triplets, validation_triplets, learning_triplets, 0.9);
 	std::cout << "Done." << std::endl;
 	
-	itpp::mat learning(2176, 5636);
-	itpp::mat validation(2176, 5636);
+	itpp::mat learning;
+	itpp::mat validation;
 	learning.zeros();
 	validation.zeros();
 
 	std::cout << "Converting triplets to matrices...";
-	convert_triplets_to_matrix(learning, learning_triplets);
-	convert_triplets_to_matrix(validation, validation_triplets);
+	convert_triplets_to_matrix(learning, learning_triplets, max_triplet_values);
+	convert_triplets_to_matrix(validation, validation_triplets, max_triplet_values);
 	std::cout << "Done." << std::endl;
 
 	// Average user's and product's ratings
@@ -171,7 +214,22 @@ void cross_validation(const T &triplets)
 	std::cout << "Users' resemblance...";
 	itpp::mat user_resemblance(learning.rows(), learning.rows());
 	user_resemblance.zeros();
-	user_resembl(learning, user_resemblance, correlation_coeff_resembl_metric_t<itpp::vec>(avg_product_ratings));
+	if (prefer_cached_data)
+	{
+		itpp::it_ifile users_resembl_itpp_file("users_resembl.it");
+		std::cout << "Loading cached data...";
+		users_resembl_itpp_file >> itpp::Name("users_resembl") >> user_resemblance;
+		users_resembl_itpp_file.close();
+	}
+	else
+	{
+		std::cout << "Computing...";
+		user_resembl(learning, user_resemblance, correlation_coeff_resembl_metric_t<itpp::vec>(avg_product_ratings));
+		std::cout << "Caching data...";
+		itpp::it_file users_resembl_itpp_file("users_resembl.it");
+		users_resembl_itpp_file << itpp::Name("users_resembl") << user_resemblance;
+		users_resembl_itpp_file.close();
+	}
 	std::cout << "Done." << std::endl;
 	
 	// GroupLens
@@ -207,6 +265,55 @@ void cross_validation(const T &triplets)
 
 int main(int argc, char **argv)
 {
+	std::string input_filename("");
+	std::string output_filename("out.csv");
+	size_t input_limit = 0;
+	bool load_cached_data = false;
+
+	try
+	{
+		TCLAP::CmdLine cmd("Recommender", ' ', "0.0");
+
+		TCLAP::ValueArg<std::string> input_filename_arg("i", "input-filename", 
+										"Input filename", 
+										false, 
+										input_filename, 
+										"string", 
+										cmd);
+		
+		TCLAP::ValueArg<std::string> output_filename_arg("o", "output-filename", 
+										"Output filename", 
+										false, 
+										output_filename, 
+										"string", 
+										cmd);
+
+		TCLAP::ValueArg<size_t> input_limit_arg("l", "input-limit", 
+										"Input limit (triplets)", 
+										false, 
+										input_limit, 
+										"unsigned integer", 
+										cmd);
+		
+		TCLAP::SwitchArg load_cached_data_arg("c", "load-cached-data", 
+										"Load cached auxiliary data", 
+										cmd, 
+										load_cached_data);
+		
+		// parse command line
+		cmd.parse(argc, argv);
+
+		input_filename = input_filename_arg.getValue();
+		output_filename = output_filename_arg.getValue();
+		input_limit = input_limit_arg.getValue();
+		load_cached_data = load_cached_data_arg.getValue();
+	}
+	catch(TCLAP::ArgException &excp)
+	{
+		std::cerr << "TCLAP Error: " << excp.error();
+		return 1;
+	}
+	
 	if (setvbuf(stdout, NULL, _IONBF, 0) != 0)	// unbuffered
 	//if (setvbuf(stdout, NULL, _IOLBF, 0) != 0)	// line buffering of stdout
 	{
@@ -216,16 +323,22 @@ int main(int argc, char **argv)
 	std::cout << "Reading dataset...";
 	std::cin.imbue(std::locale(std::locale(), new csv_locale_facet()));
 	std::vector<dataset_triplet_t> triplet_list;
-	triplet_list.reserve(3000);
-	dataset_triplet_t triplet;
-	while (std::cin >> triplet.user >> triplet.product >> triplet.rating)
+	triplet_list.reserve(input_limit == 0 ? 3000 : input_limit);
+	dataset_triplet_t triplet = {0, 0, 0};
+	dataset_triplet_t max_triplet_values = {0, 0, 0};
+	
+	while ((input_limit == 0 || triplet_list.size() < input_limit) 
+			&& std::cin >> triplet.user >> triplet.product >> triplet.rating)
 	{
 		std::cout << "(" << triplet.user << "," << triplet.product << ") -> " << triplet.rating << std::endl;
+
+		max_triplet_values.user = std::max(max_triplet_values.user, triplet.user);
+		max_triplet_values.product = std::max(max_triplet_values.product, triplet.product);
 		triplet_list.push_back(triplet);
 	}
 	std::cout << "Done." << std::endl;
 
-	cross_validation(triplet_list);
+	cross_validation(triplet_list, max_triplet_values, load_cached_data);
 
 	return 0;
 }
