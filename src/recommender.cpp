@@ -140,7 +140,7 @@ void knn(M &knn_predict, size_t k,
 }
 
 template <class T>
-void cross_validation_get_sets(const T &triplets, T &validation, T &learning, float validation_rel_size = 0.9)
+void cross_validation_get_sets(const T &triplets, T &validation, T &learning, float validation_rel_size = 0.1)
 {
 	size_t triplets_count = triplets.size();
 	size_t validation_size = triplets_count * validation_rel_size;
@@ -188,7 +188,7 @@ void cross_validation(const T &triplets,
 	T validation_triplets;
 	T learning_triplets;
 	std::cout << "Generating cross-validation data sets...";
-	cross_validation_get_sets(triplets, validation_triplets, learning_triplets, 0.9);
+	cross_validation_get_sets(triplets, validation_triplets, learning_triplets, 0.1);
 	std::cout << "Done." << std::endl;
 	
 	itpp::mat learning;
