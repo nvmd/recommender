@@ -66,8 +66,8 @@ void avg_ratings(const M &users_ratings,
 		avg_product_ratings[j] = itpp::sum(users_ratings.get_col(j));
 	}
 #endif
-	avg_users_rating /= avg_users_rating.size();
-	avg_product_ratings /= avg_product_ratings.size();
+	avg_users_rating /= users_ratings.cols();
+	avg_product_ratings /= users_ratings.rows();
 }
 
 template <class R, class M>
