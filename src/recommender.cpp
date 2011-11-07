@@ -201,6 +201,9 @@ void cross_validation(const T &triplets,
 	convert_triplets_to_matrix(learning, learning_triplets, max_triplet_values);
 	convert_triplets_to_matrix(validation, validation_triplets, max_triplet_values);
 	std::cout << "Done." << std::endl;
+	
+	std::cout << "Learning dataset: \n" << learning << std::endl;
+	std::cout << "Validation dataset: \n" << validation << std::endl;
 
 	// Average user's and product's ratings
 	std::cout << "Average user's and product's ratings...";
@@ -210,6 +213,9 @@ void cross_validation(const T &triplets,
 	avg_product_ratings.zeros();
 	avg_ratings(learning, avg_users_rating, avg_product_ratings);
 	std::cout << "Done." << std::endl;
+	
+	std::cout << "Avg. users' ratings: \n" << avg_users_rating << std::endl;
+	std::cout << "Avg. products' ratings: \n" << avg_product_ratings << std::endl;
 	
 	// Users' resemblance
 	std::cout << "Users' resemblance...";
@@ -233,6 +239,8 @@ void cross_validation(const T &triplets,
 	}
 	std::cout << "Done." << std::endl;
 	
+	std::cout << "Users' resemblance: \n" << user_resemblance << std::endl;
+	
 	// GroupLens
 	std::cout << "GroupLens...";
 	itpp::mat grouplens_predict(learning.rows(), learning.cols());
@@ -254,9 +262,7 @@ void cross_validation(const T &triplets,
 	float grouplens_rmse = rmse(validation, grouplens_predict);
 	float knn_rmse = rmse(validation, knn_predict);
 
-	// Output results
-	std::cout << "Validation data: \n" << validation << std::endl;
-	
+	// Output results	
 	std::cout << "GroupLens: \n" << grouplens_predict << std::endl;
 	std::cout << "RMSE: \n" << grouplens_rmse << std::endl;
 	
