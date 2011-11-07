@@ -41,7 +41,7 @@ float rmse_v(const V &x1, const V &x2)
 #if defined(ALG_REF_IMPL)
 	for (int i = 0; i < x1.size(); ++i)
 	{
-		sum += (x1(i) - x2(i))(x1(i) - x2(i));
+		sum += (x1(i) - x2(i))*(x1(i) - x2(i));
 	}
 #else	// ALG_ITPP_IMPL
 	sum = sum_sqr(x1 - x2);
