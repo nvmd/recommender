@@ -170,7 +170,7 @@ void convert_triplets_to_matrix(M &matrix, const T &triplets,
 	matrix.zeros();
 
 	std::for_each(triplets.begin(), triplets.end(), 
-		[&matrix](const T::value_type &x){
+		[&matrix](const typename T::value_type &x){
 			if (x.user >= matrix.rows() || x.product >= matrix.cols())
 			{
 				std::cout << "convert_triplets_to_matrix: resizing matrix" << std::endl;
@@ -224,7 +224,7 @@ void cross_validation(const T &triplets,
 	else
 	{
 		std::cout << "Computing...";
-		user_resembl(learning, user_resemblance, correlation_coeff_resembl_metric_t<itpp::vec>(avg_product_ratings));
+		user_resembl(learning, user_resemblance, correlation_coeff_resembl_metric_t<itpp::vec>(avg_users_rating));
 		std::cout << "Caching data...";
 		itpp::it_file users_resembl_itpp_file("users_resembl.it");
 		users_resembl_itpp_file << itpp::Name("users_resembl") << user_resemblance;
