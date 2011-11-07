@@ -14,12 +14,12 @@ float rmse(const R &real, const R &prediction)
 
 	float sum = 0;
 #if defined(ALG_REF_IMPL)
-	for (size_t i = 0; i < prediction.cols(); ++i)
+	for (int i = 0; i < prediction.cols(); ++i)
 	{
 		sum += rmse_v(real.get_col(i), prediction.get_col(i));
 	}
 #else	// ALG_ITPP_IMPL
-	for (size_t i = 0; i < prediction.cols(); ++i)
+	for (int i = 0; i < prediction.cols(); ++i)
 	{
 		sum += sum_sqr(real.get_col(i) - prediction.get_col(i));
 	}
@@ -39,7 +39,7 @@ float rmse_v(const V &x1, const V &x2)
 
 	float sum = 0;
 #if defined(ALG_REF_IMPL)
-	for (size_t i = 0; i < x1.size(); ++i)
+	for (int i = 0; i < x1.size(); ++i)
 	{
 		sum += (x1(i) - x2(i))(x1(i) - x2(i));
 	}

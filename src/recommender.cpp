@@ -48,20 +48,20 @@ void avg_ratings(const M &users_ratings,
 {
 	// Average user's ratings and product's ratings
 #if defined(ALG_REF_IMPL)
-	for (size_t i=0; i<users_ratings.rows(); ++i)
+	for (int i=0; i<users_ratings.rows(); ++i)
 	{
-		for (size_t j=0; j<users_ratings.cols(); ++j)
+		for (int j=0; j<users_ratings.cols(); ++j)
 		{
 			avg_users_rating[i] += users_ratings(i,j);
 			avg_product_ratings[j] += users_ratings(i,j);
 		}
 	}
 #else
-	for (size_t i=0; i<users_ratings.rows(); ++i)
+	for (int i=0; i<users_ratings.rows(); ++i)
 	{
 		avg_users_rating[i] = itpp::sum(users_ratings.get_row(i));
 	}
-	for (size_t j=0; j<users_ratings.cols(); ++j)
+	for (int j=0; j<users_ratings.cols(); ++j)
 	{
 		avg_product_ratings[j] = itpp::sum(users_ratings.get_col(j));
 	}
@@ -112,12 +112,12 @@ void knn(M &knn_predict, size_t k,
 				tree(KDTree::_Bracket_accessor<itpp::vec>(), 
 						kdtree_distance_t<itpp::vec, itpp::mat>
 						(avg_product_ratings, user_resemblance));
-	for (size_t i=0; i<users_ratings.rows(); ++i)	//users
+	for (int i=0; i<users_ratings.rows(); ++i)	//users
 	{
 		tree.insert(users_ratings.get_row(i));
 	}
 	
-	for (size_t i=0; i<users_ratings.rows(); ++i)	//users
+	for (int i=0; i<users_ratings.rows(); ++i)	//users
 	{
 		itpp::mat nearest_neighbours;
 		std::vector<itpp::vec> neighbours;
@@ -129,7 +129,7 @@ void knn(M &knn_predict, size_t k,
 						  nearest_neighbours.append_row(v); 
 					});
 		
-		for (size_t j=0; j<users_ratings.cols(); ++j)	//products
+		for (int j=0; j<users_ratings.cols(); ++j)	//products
 		{
 			knn_predict(i,j) = grouplens(avg_product_ratings, 
 										nearest_neighbours, 
@@ -171,7 +171,8 @@ void convert_triplets_to_matrix(M &matrix, const T &triplets,
 
 	std::for_each(triplets.begin(), triplets.end(), 
 		[&matrix](const typename T::value_type &x){
-			if (x.user >= matrix.rows() || x.product >= matrix.cols())
+			if (x.user >= static_cast<size_t>(matrix.rows()) 
+				|| x.product >= static_cast<size_t>(matrix.cols()))
 			{
 				std::cout << "convert_triplets_to_matrix: resizing matrix" << std::endl;
 				matrix.set_size(x.user+1, x.product+1, true);

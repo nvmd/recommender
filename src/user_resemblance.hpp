@@ -84,9 +84,9 @@ private:
 template <class R, class M>
 void user_resembl(const R &users_ratings, R &user_resemblance, const M &user_resemblance_metric)
 {
-	for (size_t i=0; i<user_resemblance.rows(); ++i)
+	for (int i=0; i<user_resemblance.rows(); ++i)
 	{	//matrix is symmetric
-		for (size_t j=i; j<user_resemblance.cols(); ++j)
+		for (int j=i; j<user_resemblance.cols(); ++j)
 		{
 			user_resemblance(i,j) = user_resemblance_metric(users_ratings.get_row(i), users_ratings.get_row(j));
 			user_resemblance(j,i) = user_resemblance(i,j);
