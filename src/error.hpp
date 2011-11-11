@@ -1,4 +1,7 @@
 
+#ifndef SPBAU_RECOMMENDER_ERROR_HPP_
+#define SPBAU_RECOMMENDER_ERROR_HPP_
+
 #include <cmath>
 #include <cstddef>
 #include <cassert>
@@ -48,3 +51,5 @@ float rmse_v(const V &x1, const V &x2)
 #endif
 	return std::sqrt((1.0/x1.size()) * sum);
 }
+
+#endif	// SPBAU_RECOMMENDER_ERROR_HPP_

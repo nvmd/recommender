@@ -1,4 +1,7 @@
 
+#ifndef SPBAU_RECOMMENDER_USER_RESEMBLANCE_HPP_
+#define SPBAU_RECOMMENDER_USER_RESEMBLANCE_HPP_
+
 #include <cstddef>
 #include <cmath>
 
@@ -94,3 +97,5 @@ void user_resembl(const R &users_ratings, R &user_resemblance, const M &user_res
 		}
 	}
 }
+
+#endif	// SPBAU_RECOMMENDER_USER_RESEMBLANCE_HPP_

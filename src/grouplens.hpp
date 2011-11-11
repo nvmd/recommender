@@ -1,4 +1,7 @@
 
+#ifndef SPBAU_RECOMMENDER_GROUPLENS_HPP_
+#define SPBAU_RECOMMENDER_GROUPLENS_HPP_
+
 #include <cstddef>
 #include <cmath>
 
@@ -40,3 +43,5 @@ void grouplens(M &grouplens_predict, const M &users_ratings,
 		}
 	}
 }
+
+#endif	// SPBAU_RECOMMENDER_GROUPLENS_HPP_
