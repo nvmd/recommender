@@ -93,22 +93,26 @@ void cross_validation_get_sets(const T &triplets, T &validation, T &learning, fl
 	}
 }
 
-template <class M, class T>
-void convert_triplets_to_matrix(M &matrix, const T &triplets, 
+template <class M, class B, class T>
+void convert_triplets_to_matrix(M &matrix, B &matrix_mask, const T &triplets, 
 								const typename T::value_type &max_triplet_values)
 {
 	matrix.set_size(max_triplet_values.user+1, max_triplet_values.product+1);
+	matrix_mask.set_size(matrix.rows(), matrix.cols());
 	matrix.zeros();
+	matrix_mask.zeros();
 
 	std::for_each(triplets.begin(), triplets.end(), 
-		[&matrix](const typename T::value_type &x){
+		[&matrix,&matrix_mask](const typename T::value_type &x){
 			if (x.user >= static_cast<size_t>(matrix.rows()) 
 				|| x.product >= static_cast<size_t>(matrix.cols()))
 			{
 				std::cout << "convert_triplets_to_matrix: resizing matrix" << std::endl;
 				matrix.set_size(x.user+1, x.product+1, true);
+				matrix_mask.set_size(x.user+1, x.product+1, true);
 			}
 			matrix(x.user, x.product) = x.rating;
+			matrix_mask(x.user, x.product) = true;
 	});
 }
 
@@ -124,17 +128,24 @@ void cross_validation(const T &triplets,
 	std::cout << "Done." << std::endl;
 	
 	itpp::mat learning;
-	itpp::mat validation;
+	itpp::bmat learning_mask;
 	learning.zeros();
+	learning_mask.zeros();
+	
+	itpp::mat validation;
+	itpp::bmat validation_mask;
 	validation.zeros();
+	validation_mask.zeros();
 
 	std::cout << "Converting triplets to matrices...";
-	convert_triplets_to_matrix(learning, learning_triplets, max_triplet_values);
-	convert_triplets_to_matrix(validation, validation_triplets, max_triplet_values);
+	convert_triplets_to_matrix(learning, learning_mask, learning_triplets, max_triplet_values);
+	convert_triplets_to_matrix(validation, validation_mask, validation_triplets, max_triplet_values);
 	std::cout << "Done." << std::endl;
 	
 	std::cout << "Learning dataset: \n" << learning << std::endl;
+	std::cout << "Learning dataset mask: \n" << learning_mask << std::endl;
 	std::cout << "Validation dataset: \n" << validation << std::endl;
+	std::cout << "Validation dataset mask: \n" << validation_mask << std::endl;
 
 	// Average user's and product's ratings
 	std::cout << "Average user's and product's ratings...";
