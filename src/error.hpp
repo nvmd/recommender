@@ -7,7 +7,7 @@
 #include <cassert>
 
 /// Matrix RMSE
-/// \param R Matrix type
+/// \tparam R Matrix type
 /// \return RMSE of two matrices
 template <class R>
 float rmse(const R &real, const R &prediction)
@@ -31,9 +31,9 @@ float rmse(const R &real, const R &prediction)
 }
 
 /// Vector RMSE
-/// \param V Vector type
-/// \param x1 First argument vector
-/// \param x2 Second argument vector
+/// \tparam V Vector type
+/// \param[in] x1 First argument vector
+/// \param[in] x2 Second argument vector
 /// \return RMSE of two vectors
 template <class V>
 float rmse_v(const V &x1, const V &x2)

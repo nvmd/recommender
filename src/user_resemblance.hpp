@@ -8,11 +8,12 @@
 #include <itpp/itbase.h>
 
 /// Correlation coefficient
-/// \param R User's ratings of products - vector type (R[i] - rating of a product i)
-/// \param P Average ratings for products - vector type (P[i] - average rating of product i)
-/// \param user1 
-/// \param user2 
-/// \param avg_user_ratings 
+/// \tparam R User's ratings of products - vector type (R[i] - rating of a product i)
+/// \tparam P Average ratings for products - vector type (P[i] - average rating of product i)
+/// \param[in] user1 
+/// \param[in] user2 
+/// \param[in] avg_user_ratings 
+/// \return Correlation coefficient of 'user1' and 'user2'
 template <class R, class P>
 float correlation_coeff(const R &user1, const R &user2, const P &avg_user_ratings)
 {
@@ -88,20 +89,20 @@ private:
 };
 
 /// User resemblance caching functor
-/// \param RatingsT Type of the Ratings matrix
-/// \param ResemblanceT Type of the Resemblance matrix
-/// \param ResemblanceMaskT Type of the Resemblance matrix mask matrix
-/// \param MetricT Type of the user resemblance metric
+/// \tparam RatingsT Type of the Ratings matrix
+/// \tparam ResemblanceT Type of the Resemblance matrix
+/// \tparam ResemblanceMaskT Type of the Resemblance matrix mask matrix
+/// \tparam MetricT Type of the user resemblance metric
 template <class RatingsT, class ResemblanceT, class ResemblanceMaskT, 
 		  class MetricT>
 class user_resemblance_t
 {
 public:
 	/// Constructor
-	/// \param ratings Ratings matrix
-	/// \param resemblance Resemblance matrix
-	/// \param resemblance_mask Resemblance matrix mask matrix
-	/// \param metric User resemblance metric
+	/// \param[in] ratings Ratings matrix
+	/// \param[in,out] resemblance Resemblance matrix
+	/// \param[in,out] resemblance_mask Resemblance matrix mask matrix
+	/// \param[in] metric User resemblance metric
 	user_resemblance_t(const RatingsT &ratings, ResemblanceT &resemblance, 
 					   ResemblanceMaskT &resemblance_mask, 
 					   const MetricT &metric = MetricT())
@@ -110,8 +111,8 @@ public:
 	{}
 	
 	/// Resemblance coefficient for users
-	/// \param user1 First user index in the Rating matrix
-	/// \param user2 Second user index in the Rating matrix
+	/// \param[in] user1 First user index in the Rating matrix
+	/// \param[in] user2 Second user index in the Rating matrix
 	/// \return User's resemblance coefficient
 	float operator()(size_t user1, size_t user2)
 	{

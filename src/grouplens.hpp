@@ -5,13 +5,18 @@
 #include <cstddef>
 #include <cmath>
 
+/// GroupLens
+/// \param[in] avg_product_rating Average rating of the product (user's rating of a product)
+/// \param[in] users_rating User-Product rating matrix
+/// \param[in] avg_users_rating Average rating of the user (rating of the user)
+/// \param[in] user User index in the rating matrix
+/// \param[in] product Product index in the rating matrix
+/// \param[in,out] resemblance Resemblance matrix (can be modified if lazy computation is used)
+/// \return Predicted 'product' rating by the 'user'
 template <class V, class M, class R>
-float grouplens(const V &avg_product_rating, // avg_product_rating[i] - average user's rating of a product 'i'
-			const M &users_rating,	// users_rating[i][j] - 'i' user's rating of a product 'j'
-			const V &avg_users_rating,	// avg_users_rating[i] - average rating of the user 'i'
-			size_t user,
-			size_t product,
-			R &resemblance)
+float grouplens(const V &avg_product_rating, const M &users_rating,
+				const V &avg_users_rating, 
+				size_t user, size_t product, R &resemblance)
 {
 	float numer = 0;
 	float denom = 0;
