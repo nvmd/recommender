@@ -38,10 +38,11 @@ private:
 	M &m_resemblance;
 };
 
-template <class M, class V, class R>
+template <class M, class V, class R, class B>
 void knn(M &knn_predict, size_t k, 
-			const M &users_ratings, R &user_resemblance, 
-			const V &avg_users_rating, const V &avg_product_ratings)
+		 const M &users_ratings, const B &users_ratings_mask, 
+		 R &user_resemblance, 
+		 const V &avg_users_rating, const V &avg_product_ratings)
 {
 	//M user_resemblance(user_resemblance_unused.rows(), user_resemblance_unused.cols());
 	//M user_resemblance(user_resemblance_unused);
@@ -77,10 +78,13 @@ void knn(M &knn_predict, size_t k,
 		// Estimate i-th user by its nearest neighbours using GroupLens
 		for (int j=0; j<users_ratings.cols(); ++j)	//products
 		{
-			knn_predict(i,j) = grouplens(avg_product_ratings, 
-										nearest_neighbours, 
-										avg_users_rating, i, j, 
-										user_resemblance);
+			if (users_ratings_mask(i,j) == false)
+			{
+				knn_predict(i,j) = grouplens(avg_product_ratings, 
+											nearest_neighbours, 
+											avg_users_rating, i, j, 
+											user_resemblance);
+			}
 		}
 		std::cout << "neareast neighbours of " << i << ": " << nearest_neighbours << std::endl;
 		std::cout << "knn_predict: " << knn_predict << std::endl;

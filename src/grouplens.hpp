@@ -32,19 +32,23 @@ float grouplens(const V &avg_product_rating, const M &users_rating,
 	return avg_product_rating[product] + (numer/denom);
 }
 
-template <class M, class V, class R>
-void grouplens(M &grouplens_predict, const M &users_ratings, 
-				R &user_resemblance, 
-				const V &avg_users_rating, const V &avg_product_ratings)
+template <class M, class V, class R, class B>
+void grouplens(M &grouplens_predict, 
+			   const M &users_ratings, const B &users_ratings_mask,
+			   R &user_resemblance, 
+			   const V &avg_users_rating, const V &avg_product_ratings)
 {
 	for (int i=0; i<users_ratings.rows(); ++i)	// users
 	{
 		for (int j=0; j<users_ratings.cols(); ++j)	// products
 		{
-			grouplens_predict(i,j) = grouplens(avg_product_ratings, 
-										users_ratings, 
-										avg_users_rating, i, j, 
-										user_resemblance);
+			if (users_ratings_mask(i,j) == false)
+			{
+				grouplens_predict(i,j) = grouplens(avg_product_ratings, 
+												   users_ratings, 
+												   avg_users_rating, i, j, 
+												   user_resemblance);
+			}
 		}
 	}
 }

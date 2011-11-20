@@ -174,14 +174,16 @@ void cross_validation(const T &triplets,
 	std::cout << "GroupLens...";
 	itpp::mat grouplens_predict(learning.rows(), learning.cols());
 	grouplens_predict.zeros();
-	grouplens(grouplens_predict, learning, u_resemblance, avg_users_rating, avg_product_ratings);
+	grouplens(grouplens_predict, learning, learning_mask, 
+			  u_resemblance, avg_users_rating, avg_product_ratings);
 	std::cout << "Done." << std::endl;
 	
 	// k-NN
 	std::cout << "k-NN...";
 	itpp::mat knn_predict(learning.rows(), learning.cols());
 	knn_predict.zeros();
-	knn(knn_predict, 3, learning, user_resemblance, avg_users_rating, avg_product_ratings);
+	knn(knn_predict, 3, learning, learning_mask, 
+		user_resemblance, avg_users_rating, avg_product_ratings);
 	std::cout << "Done." << std::endl;
 	
 	// Validation
