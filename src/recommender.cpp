@@ -166,7 +166,7 @@ void cross_validation(const T &triplets,
 	user_resemblance_mask.zeros();
 	
 	// compute users' resemblance on demand
-	user_resemblance_itpp_t u_resemblance(learning, 
+	user_resemblance_itpp_t u_resemblance(learning, learning_mask, 
 										  user_resemblance, user_resemblance_mask, 
 										  correlation_coeff_resembl_metric_t<itpp::vec>(avg_users_rating));
 	

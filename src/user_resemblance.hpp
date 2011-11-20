@@ -90,24 +90,27 @@ private:
 
 /// User resemblance caching functor
 /// \tparam RatingsT Type of the Ratings matrix
+/// \tparam RatingsMaskT Type of the Ratings matrix mask matrix
 /// \tparam ResemblanceT Type of the Resemblance matrix
 /// \tparam ResemblanceMaskT Type of the Resemblance matrix mask matrix
 /// \tparam MetricT Type of the user resemblance metric
-template <class RatingsT, class ResemblanceT, class ResemblanceMaskT, 
+template <class RatingsT, class RatingsMaskT, class ResemblanceT, class ResemblanceMaskT, 
 		  class MetricT>
 class user_resemblance_t
 {
 public:
 	/// Constructor
 	/// \param[in] ratings Ratings matrix
+	/// \param[in] ratings_mask Ratings matrix mask matrix
 	/// \param[in,out] resemblance Resemblance matrix
 	/// \param[in,out] resemblance_mask Resemblance matrix mask matrix
 	/// \param[in] metric User resemblance metric
-	user_resemblance_t(const RatingsT &ratings, ResemblanceT &resemblance, 
-					   ResemblanceMaskT &resemblance_mask, 
+	user_resemblance_t(const RatingsT &ratings, const RatingsMaskT &ratings_mask, 
+					   ResemblanceT &resemblance, ResemblanceMaskT &resemblance_mask, 
 					   const MetricT &metric = MetricT())
-		:m_ratings(ratings), m_metric(metric), m_resemblance(resemblance), 
-		m_resemblance_mask(resemblance_mask)
+		:m_ratings(ratings), m_ratings_mask(ratings_mask), 
+		m_resemblance(resemblance), m_resemblance_mask(resemblance_mask), 
+		m_metric(metric)
 	{}
 	
 	/// Resemblance coefficient for users
@@ -132,12 +135,13 @@ public:
 	
 private:
 	const RatingsT &m_ratings;	///< Ratings matrix
-	const MetricT &m_metric;	///< User resemblance metric
+	const RatingsMaskT &m_ratings_mask;	///< Ratings matrix mask matrix
 	ResemblanceT &m_resemblance;	///< Resemblance matrix
 	ResemblanceMaskT &m_resemblance_mask;	///< Resemblance matrix mask matrix
+	const MetricT &m_metric;	///< User resemblance metric
 };
 
-typedef user_resemblance_t<itpp::mat, itpp::mat, itpp::bmat, 
+typedef user_resemblance_t<itpp::mat, itpp::bmat, itpp::mat, itpp::bmat, 
 							   correlation_coeff_resembl_metric_t<itpp::vec> > user_resemblance_itpp_t;
 
 template <class R, class M>
