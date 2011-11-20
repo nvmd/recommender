@@ -114,8 +114,8 @@ void convert_triplets_to_matrix(M &matrix, const T &triplets,
 
 template <class T>
 void cross_validation(const T &triplets, 
-						const typename T::value_type &max_triplet_values, 
-						bool prefer_cached_data)
+					  const typename T::value_type &max_triplet_values, 
+					  bool prefer_cached_data)
 {
 	T validation_triplets;
 	T learning_triplets;
@@ -149,34 +149,21 @@ void cross_validation(const T &triplets,
 	std::cout << "Avg. products' ratings: \n" << avg_product_ratings << std::endl;
 	
 	// Users' resemblance
-	std::cout << "Users' resemblance...";
 	itpp::mat user_resemblance(learning.rows(), learning.rows());
+	itpp::bmat user_resemblance_mask(user_resemblance.rows(), user_resemblance.cols());
 	user_resemblance.zeros();
-	if (prefer_cached_data)
-	{
-		itpp::it_ifile users_resembl_itpp_file("users_resembl.it");
-		std::cout << "Loading cached data...";
-		users_resembl_itpp_file >> itpp::Name("users_resembl") >> user_resemblance;
-		users_resembl_itpp_file.close();
-	}
-	else
-	{
-		std::cout << "Computing...";
-		user_resembl(learning, user_resemblance, correlation_coeff_resembl_metric_t<itpp::vec>(avg_users_rating));
-		std::cout << "Caching data...";
-		itpp::it_file users_resembl_itpp_file("users_resembl.it");
-		users_resembl_itpp_file << itpp::Name("users_resembl") << user_resemblance;
-		users_resembl_itpp_file.close();
-	}
-	std::cout << "Done." << std::endl;
+	user_resemblance_mask.zeros();
 	
-	std::cout << "Users' resemblance: \n" << user_resemblance << std::endl;
+	// compute users' resemblance on demand
+	user_resemblance_itpp_t u_resemblance(learning, 
+										  user_resemblance, user_resemblance_mask, 
+										  correlation_coeff_resembl_metric_t<itpp::vec>(avg_users_rating));
 	
 	// GroupLens
 	std::cout << "GroupLens...";
 	itpp::mat grouplens_predict(learning.rows(), learning.cols());
 	grouplens_predict.zeros();
-	grouplens(grouplens_predict, learning, user_resemblance, avg_users_rating, avg_product_ratings);
+	grouplens(grouplens_predict, learning, u_resemblance, avg_users_rating, avg_product_ratings);
 	std::cout << "Done." << std::endl;
 	
 	// k-NN

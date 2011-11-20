@@ -7,14 +7,17 @@
 
 #include <itpp/itbase.h>
 
-// R - user's ratings of products <vector> (R[i] - rating of a product i)
-// P - average ratings for products <vector> (P[i] - average rating of product i)
-
+/// Correlation coefficient
+/// \param R User's ratings of products - vector type (R[i] - rating of a product i)
+/// \param P Average ratings for products - vector type (P[i] - average rating of product i)
+/// \param user1 
+/// \param user2 
+/// \param avg_user_ratings 
 template <class R, class P>
 float correlation_coeff(const R &user1, const R &user2, const P &avg_user_ratings)
 {
 	float numer = 0;
-	float denom = 0;	
+	float denom = 0;
 
 	float user1r_sq_sum = 0;
 	float user2r_sq_sum = 0;
@@ -83,6 +86,58 @@ public:
 private:
 	const R &m_avg_user_ratings;
 };
+
+/// User resemblance caching functor
+/// \param RatingsT Type of the Ratings matrix
+/// \param ResemblanceT Type of the Resemblance matrix
+/// \param ResemblanceMaskT Type of the Resemblance matrix mask matrix
+/// \param MetricT Type of the user resemblance metric
+template <class RatingsT, class ResemblanceT, class ResemblanceMaskT, 
+		  class MetricT>
+class user_resemblance_t
+{
+public:
+	/// Constructor
+	/// \param ratings Ratings matrix
+	/// \param resemblance Resemblance matrix
+	/// \param resemblance_mask Resemblance matrix mask matrix
+	/// \param metric User resemblance metric
+	user_resemblance_t(const RatingsT &ratings, ResemblanceT &resemblance, 
+					   ResemblanceMaskT &resemblance_mask, 
+					   const MetricT &metric = MetricT())
+		:m_ratings(ratings), m_metric(metric), m_resemblance(resemblance), 
+		m_resemblance_mask(resemblance_mask)
+	{}
+	
+	/// Resemblance coefficient for users
+	/// \param user1 First user index in the Rating matrix
+	/// \param user2 Second user index in the Rating matrix
+	/// \return User's resemblance coefficient
+	float operator()(size_t user1, size_t user2)
+	{
+		//std::clog << "user_resemblance_t::operator()(user1 = " << user1 << ", user2 = " << user2 << ")" << std::endl;
+		if (m_resemblance_mask(user1, user2) == false)
+		{
+			//Note: m_resemblance matrix is symmetric - 
+			// we can even store only upper triangle
+			m_resemblance(user1, user2) = m_metric(m_ratings.get_row(user1), 
+												   m_ratings.get_row(user2));
+			m_resemblance(user2, user1) = m_resemblance(user1, user2);
+			m_resemblance_mask(user1, user2) = true;
+			m_resemblance_mask(user2, user1) = true;
+		}
+		return m_resemblance(user1, user2);
+	}
+	
+private:
+	const RatingsT &m_ratings;	///< Ratings matrix
+	const MetricT &m_metric;	///< User resemblance metric
+	ResemblanceT &m_resemblance;	///< Resemblance matrix
+	ResemblanceMaskT &m_resemblance_mask;	///< Resemblance matrix mask matrix
+};
+
+typedef user_resemblance_t<itpp::mat, itpp::mat, itpp::bmat, 
+							   correlation_coeff_resembl_metric_t<itpp::vec> > user_resemblance_itpp_t;
 
 template <class R, class M>
 void user_resembl(const R &users_ratings, R &user_resemblance, const M &user_resemblance_metric)
