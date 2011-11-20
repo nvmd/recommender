@@ -22,8 +22,8 @@ obj/recommender.o: src/recommender.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 
-.PHONY: bin-package clean clean-all rebuild prepare
-doc:
+.PHONY: doc bin-package clean clean-all rebuild prepare
+doc: 
 	doxygen doc/Doxyfile
 bin-package: clean-all all
 	$(eval PACKAGE_NAME := $(TARGET)-0.0.1)
