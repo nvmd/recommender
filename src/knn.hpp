@@ -38,13 +38,13 @@ private:
 	M &m_resemblance;
 };
 
-template <class M, class V>
+template <class M, class V, class R>
 void knn(M &knn_predict, size_t k, 
-			const M &users_ratings, const M &user_resemblance_unused, 
+			const M &users_ratings, R &user_resemblance, 
 			const V &avg_users_rating, const V &avg_product_ratings)
 {
 	//M user_resemblance(user_resemblance_unused.rows(), user_resemblance_unused.cols());
-	M user_resemblance(user_resemblance_unused);
+	//M user_resemblance(user_resemblance_unused);
 	//user_resemblance.zeros();
 	KDTree::KDTree<3, 
 				itpp::vec, 

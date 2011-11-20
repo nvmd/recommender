@@ -5,13 +5,13 @@
 #include <cstddef>
 #include <cmath>
 
-template <class V, class M>
+template <class V, class M, class R>
 float grouplens(const V &avg_product_rating, // avg_product_rating[i] - average user's rating of a product 'i'
 			const M &users_rating,	// users_rating[i][j] - 'i' user's rating of a product 'j'
 			const V &avg_users_rating,	// avg_users_rating[i] - average rating of the user 'i'
 			size_t user,
 			size_t product,
-			const M &resemblance)
+			R &resemblance)
 {
 	float numer = 0;
 	float denom = 0;
@@ -27,9 +27,9 @@ float grouplens(const V &avg_product_rating, // avg_product_rating[i] - average 
 	return avg_product_rating[product] + (numer/denom);
 }
 
-template <class M, class V>
+template <class M, class V, class R>
 void grouplens(M &grouplens_predict, const M &users_ratings, 
-				const M &user_resemblance, 
+				R &user_resemblance, 
 				const V &avg_users_rating, const V &avg_product_ratings)
 {
 	for (int i=0; i<users_ratings.rows(); ++i)	// users
