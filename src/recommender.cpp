@@ -42,21 +42,41 @@ struct dataset_triplet_t
 	float rating;
 };
 
-template <class M, class V>
-void avg_ratings(const M &users_ratings, 
+template <class M, class V, class B>
+void avg_ratings(const M &users_ratings, const B &users_ratings_mask, 
 					V &avg_users_rating, V &avg_product_ratings)
 {
 	// Average user's ratings and product's ratings
-#if defined(ALG_REF_IMPL)
+#if defined(ALG_REF_IMPL) || !defined(ALG_REF_IMPL)
 	for (int i=0; i<users_ratings.rows(); ++i)
 	{
+		size_t valuable = 0;
 		for (int j=0; j<users_ratings.cols(); ++j)
 		{
-			avg_users_rating[i] += users_ratings(i,j);
-			avg_product_ratings[j] += users_ratings(i,j);
+			if (users_ratings_mask(i,j) == true)
+			{
+				++valuable;
+				avg_users_rating[i] += users_ratings(i,j);
+			}
 		}
+		avg_users_rating[i] /= valuable;
+	}
+	
+	for (int i=0; i<users_ratings.cols(); ++i)
+	{
+		size_t valuable = 0;
+		for (int j=0; j<users_ratings.rows(); ++j)
+		{
+			if (users_ratings_mask(j,i) == true)
+			{
+				++valuable;
+				avg_product_ratings[i] += users_ratings(j,i);
+			}
+		}
+		avg_product_ratings[i] /= valuable;
 	}
 #else
+#error ALG_ITPP_IMPL implementation of avg_ratings is obsolete
 	for (int i=0; i<users_ratings.rows(); ++i)
 	{
 		avg_users_rating[i] = itpp::sum(users_ratings.get_row(i));
@@ -65,9 +85,9 @@ void avg_ratings(const M &users_ratings,
 	{
 		avg_product_ratings[j] = itpp::sum(users_ratings.get_col(j));
 	}
-#endif
 	avg_users_rating /= users_ratings.cols();
 	avg_product_ratings /= users_ratings.rows();
+#endif
 }
 
 template <class T>
@@ -153,7 +173,7 @@ void cross_validation(const T &triplets,
 	itpp::vec avg_product_ratings(learning.cols());
 	avg_users_rating.zeros();
 	avg_product_ratings.zeros();
-	avg_ratings(learning, avg_users_rating, avg_product_ratings);
+	avg_ratings(learning, learning_mask, avg_users_rating, avg_product_ratings);
 	std::cout << "Done." << std::endl;
 	
 	std::cout << "Avg. users' ratings: \n" << avg_users_rating << std::endl;
