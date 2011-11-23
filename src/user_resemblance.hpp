@@ -26,7 +26,7 @@ float correlation_coeff(const R &user1, const R &user2)
 	
 #if defined(ALG_REF_IMPL)
 	//for each product
-	for (int i=0; i<avg_user_ratings.size(); ++i)
+	for (int i = 0; i < user1.size(); ++i)
 	{
 		float user1r = user1[i] - mean(user1);
 		float user2r = user2[i] - mean(user2);
