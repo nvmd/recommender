@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <iostream>
 #include <vector>
+#include <string>
 
 #include <itpp/itbase.h>
 #include <itpp/base/vec.h>
@@ -223,10 +224,18 @@ void cross_validation(const T &triplets,
 }
 
 template <class F, class L, class T>
-void read_dataset(F &file, L &triplet_list, T &max_triplet_values, size_t input_limit = 0)
+void read_dataset(F &file, L &triplet_list, T &max_triplet_values, size_t input_limit = 0, size_t skip_lines = 0)
 {
 	file.imbue(std::locale(std::locale(), new csv_locale_facet()));
 	dataset_triplet_t triplet = {0, 0, 0};
+	
+	size_t lines_skipped = 0;
+	std::string line;
+	while (lines_skipped++ < skip_lines)
+	{
+		std::getline(file, line);
+		std::cout << "Skipped line: \"" << line << "\"" << std::endl;
+	}
 	
 	while ((input_limit == 0 || triplet_list.size() < input_limit) 
 			&& file >> triplet.user >> triplet.product >> triplet.rating)
@@ -243,6 +252,7 @@ int main(int argc, char **argv)
 {
 	std::string input_filename("");
 	std::string output_filename("out.csv");
+	size_t skip_lines = 0;
 	size_t input_limit = 0;
 	bool load_cached_data = false;
 
@@ -263,7 +273,14 @@ int main(int argc, char **argv)
 										output_filename, 
 										"string", 
 										cmd);
-
+	
+		TCLAP::ValueArg<size_t> skip_lines_arg("s", "skip-lines", 
+										"Skip lines at the beginning of the input file", 
+										false, 
+										skip_lines, 
+										"unsigned integer", 
+										cmd);
+		
 		TCLAP::ValueArg<size_t> input_limit_arg("l", "input-limit", 
 										"Input limit (triplets)", 
 										false, 
@@ -281,6 +298,7 @@ int main(int argc, char **argv)
 
 		input_filename = input_filename_arg.getValue();
 		output_filename = output_filename_arg.getValue();
+		skip_lines = skip_lines_arg.getValue();
 		input_limit = input_limit_arg.getValue();
 		load_cached_data = load_cached_data_arg.getValue();
 	}
@@ -300,7 +318,7 @@ int main(int argc, char **argv)
 	std::vector<dataset_triplet_t> triplet_list;
 	dataset_triplet_t max_triplet_values = {0, 0, 0};
 	triplet_list.reserve(input_limit == 0 ? 3000 : input_limit);
-	read_dataset(std::cin, triplet_list, max_triplet_values, input_limit);
+	read_dataset(std::cin, triplet_list, max_triplet_values, input_limit, skip_lines);
 	std::cout << "Done." << std::endl;
 
 	cross_validation(triplet_list, max_triplet_values, load_cached_data);
