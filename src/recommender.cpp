@@ -316,8 +316,9 @@ int main(int argc, char **argv)
 	
 	std::cout << "Reading dataset...";
 	std::vector<dataset_triplet_t> triplet_list;
+	const size_t triplet_list_reserve = 3000;
 	dataset_triplet_t max_triplet_values = {0, 0, 0};
-	triplet_list.reserve(input_limit == 0 ? 3000 : input_limit);
+	triplet_list.reserve(input_limit == 0 ? triplet_list_reserve : input_limit);
 	read_dataset(std::cin, triplet_list, max_triplet_values, input_limit, skip_lines);
 	std::cout << "Done." << std::endl;
 
