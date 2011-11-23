@@ -8,34 +8,36 @@
 #include <itpp/base/mat.h>
 #include <kdtree++/kdtree.hpp>
 
-template <class R, class M>
-class kdtree_distance_t
+#include "user_resemblance.hpp"
+
+class kdtree_distance_cosine_angle_t
 {
 public:
-	kdtree_distance_t(const R &avg_product_ratings, M &resemblance)
-		:m_avg_product_ratings(avg_product_ratings), 
-		m_resemblance(resemblance)
+	kdtree_distance_cosine_angle_t()
 	{}
 	template <class U>
 	float operator()(const U &user1, const U &user2) const
 	{
 		float c = 0;
-		if (!false)	//TODO: if not present in 'm_resemblance' matrix
-		{
-			c = cosine_angle(user1, user2, m_avg_product_ratings);
-			m_resemblance(user1, user2) = c;
-			m_resemblance(user2, user1) = c;
-		}
-		else
-		{
-			c = m_resemblance(user1, user2);
-		}
+		c = cosine_angle(user1, user2);
 		return (1 - c);
 	}
 	typedef float distance_type;
-private:
-	const R &m_avg_product_ratings;
-	M &m_resemblance;
+};
+
+class kdtree_distance_correlation_coeff_t
+{
+public:
+	kdtree_distance_correlation_coeff_t()
+	{}
+	template <class U>
+	float operator()(const U &user1, const U &user2) const
+	{
+		float c = 0;
+		c = correlation_coeff(user1, user2);
+		return c*c;
+	}
+	typedef float distance_type;
 };
 
 template <class M, class V, class R, class B>
@@ -44,16 +46,18 @@ void knn(M &knn_predict, double k,
 		 R &user_resemblance, 
 		 const V &avg_users_rating, const V &avg_product_ratings)
 {
-	//M user_resemblance(user_resemblance_unused.rows(), user_resemblance_unused.cols());
-	//M user_resemblance(user_resemblance_unused);
-	//user_resemblance.zeros();
-	KDTree::KDTree<5, 
-				itpp::vec, 
-				KDTree::_Bracket_accessor<itpp::vec>, //access i-th element of the vector (using operator[]) (result_type operator()(_Val const& V, size_t const N) const)
-				kdtree_distance_t<itpp::vec, itpp::mat>	//squared distance between vectors (distance_type operator() (const _Tp& __a, const _Tp& __b) const)
-				> 
-				tree(KDTree::_Bracket_accessor<itpp::vec>(), 
-					kdtree_distance_t<itpp::vec, itpp::mat>(avg_product_ratings, user_resemblance));
+	typedef itpp::vec kdtree_value_type;
+	//access i-th element of the vector (using operator[]) (result_type operator()(_Val const& V, size_t const N) const)
+	typedef KDTree::_Bracket_accessor<itpp::vec> kdtree_bracket_accessor_type;
+	//squared distance between vectors (distance_type operator() (const _Tp& __a, const _Tp& __b) const)
+	typedef kdtree_distance_cosine_angle_t kdtree_distance_type;
+	
+	kdtree_bracket_accessor_type kdtree_bracket_accessor;
+	kdtree_distance_type kdtree_distance;
+	
+	KDTree::KDTree<5, kdtree_value_type, 
+				   kdtree_bracket_accessor_type, kdtree_distance_type> 
+				   tree(kdtree_bracket_accessor, kdtree_distance);
 	for (int i=0; i<users_ratings.rows(); ++i)	//users
 	{
 		tree.insert(users_ratings.get_row(i));
@@ -62,21 +66,21 @@ void knn(M &knn_predict, double k,
 	for (int i=0; i<users_ratings.rows(); ++i)	//users
 	{
 		itpp::mat nearest_neighbours;
-		std::vector<itpp::vec> neighbours;
+		std::vector<kdtree_value_type> neighbours;
 		
 		// Nearest neighbours of the i-th user
 		std::cout << "neighbours of " << i << " (" << users_ratings.get_row(i) << ") within " << k << std::endl;
 		tree.find_within_range(users_ratings.get_row(i), k, 
-				std::back_insert_iterator<std::vector<itpp::vec>>(neighbours));
+				std::back_insert_iterator<std::vector<kdtree_value_type>>(neighbours));
 		std::for_each(neighbours.begin(), neighbours.end(), 
-					  [&nearest_neighbours,&i,&avg_product_ratings,&users_ratings](const itpp::vec &v){
-						  std::cout << "neighbour: " << v << " at distance " << 1 - cosine_angle(users_ratings.get_row(i), v, avg_product_ratings) << std::endl;
+					  [&nearest_neighbours,&i,&users_ratings,&kdtree_distance](const kdtree_value_type &v){
+						  std::cout << "neighbour: " << v << " at distance " << kdtree_distance(users_ratings.get_row(i), v) << std::endl;
 						  nearest_neighbours.append_row(v);
 					});
 		
 		//assert(users_ratings.cols() == nearest_neighbours.cols());
 		// Estimate i-th user by its nearest neighbours using GroupLens
-		for (int j=0; j<users_ratings.cols(); ++j)	//products
+		for (int j = 0; j < users_ratings.cols(); ++j)	//products
 		{
 			if (users_ratings_mask(i,j) == false)
 			{
