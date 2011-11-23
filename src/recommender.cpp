@@ -31,6 +31,7 @@ struct csv_locale_facet : std::ctype<char>
 		rc[','] = std::ctype_base::space;
 		rc[';'] = std::ctype_base::space;
 		rc['\n'] = std::ctype_base::space;
+		rc['\r'] = std::ctype_base::space;
 		return &rc[0];
 	}
 };
@@ -202,7 +203,7 @@ void cross_validation(const T &triplets,
 	std::cout << "k-NN...";
 	itpp::mat knn_predict(learning.rows(), learning.cols());
 	knn_predict.zeros();
-	knn(knn_predict, 3, learning, learning_mask, 
+	knn(knn_predict, 0.8, learning, learning_mask, 
 		user_resemblance, avg_users_rating, avg_product_ratings);
 	std::cout << "Done." << std::endl;
 	
