@@ -1,5 +1,5 @@
 
-TARGET = recommender
+TARGET = bin/recommender
 #LIBS = -litpp_debug
 LIBS = -litpp
 DEFINES = -DALG_ITPP_IMPL -D_DEBUG
