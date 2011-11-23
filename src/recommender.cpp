@@ -95,7 +95,7 @@ template <class T>
 void cross_validation_get_sets(const T &triplets, T &validation, T &learning, float validation_rel_size = 0.1)
 {
 	size_t triplets_count = triplets.size();
-	size_t validation_size = triplets_count * validation_rel_size;
+	size_t validation_size = triplets_count * validation_rel_size + 1;
 	size_t learning_size = triplets_count - validation_size;
 
 	validation.reserve(validation_size);
@@ -189,7 +189,7 @@ void cross_validation(const T &triplets,
 	// compute users' resemblance on demand
 	user_resemblance_itpp_t u_resemblance(learning, 
 										  user_resemblance, user_resemblance_mask, 
-										  correlation_coeff_resembl_metric_t<itpp::vec>(avg_users_rating));
+										  correlation_coeff_resembl_metric_t());
 	
 	// GroupLens
 	std::cout << "GroupLens...";
@@ -203,7 +203,7 @@ void cross_validation(const T &triplets,
 	std::cout << "k-NN...";
 	itpp::mat knn_predict(learning.rows(), learning.cols());
 	knn_predict.zeros();
-	knn(knn_predict, 18, learning, learning_mask, 
+	knn(knn_predict, 2, learning, learning_mask, 
 		user_resemblance, avg_users_rating, avg_product_ratings);
 	std::cout << "Done." << std::endl;
 	
@@ -220,6 +220,23 @@ void cross_validation(const T &triplets,
 	
 	std::cout << "k-NN: \n" << knn_predict << std::endl;
 	std::cout << "RMSE: \n" << knn_rmse << std::endl;
+}
+
+template <class F, class L, class T>
+void read_dataset(F &file, L &triplet_list, T &max_triplet_values, size_t input_limit = 0)
+{
+	file.imbue(std::locale(std::locale(), new csv_locale_facet()));
+	dataset_triplet_t triplet = {0, 0, 0};
+	
+	while ((input_limit == 0 || triplet_list.size() < input_limit) 
+			&& file >> triplet.user >> triplet.product >> triplet.rating)
+	{
+		std::cout << "(" << triplet.user << "," << triplet.product << ") -> " << triplet.rating << std::endl;
+
+		max_triplet_values.user = std::max(max_triplet_values.user, triplet.user);
+		max_triplet_values.product = std::max(max_triplet_values.product, triplet.product);
+		triplet_list.push_back(triplet);
+	}
 }
 
 int main(int argc, char **argv)
@@ -280,21 +297,10 @@ int main(int argc, char **argv)
 	}
 	
 	std::cout << "Reading dataset...";
-	std::cin.imbue(std::locale(std::locale(), new csv_locale_facet()));
 	std::vector<dataset_triplet_t> triplet_list;
-	triplet_list.reserve(input_limit == 0 ? 3000 : input_limit);
-	dataset_triplet_t triplet = {0, 0, 0};
 	dataset_triplet_t max_triplet_values = {0, 0, 0};
-	
-	while ((input_limit == 0 || triplet_list.size() < input_limit) 
-			&& std::cin >> triplet.user >> triplet.product >> triplet.rating)
-	{
-		std::cout << "(" << triplet.user << "," << triplet.product << ") -> " << triplet.rating << std::endl;
-
-		max_triplet_values.user = std::max(max_triplet_values.user, triplet.user);
-		max_triplet_values.product = std::max(max_triplet_values.product, triplet.product);
-		triplet_list.push_back(triplet);
-	}
+	triplet_list.reserve(input_limit == 0 ? 3000 : input_limit);
+	read_dataset(std::cin, triplet_list, max_triplet_values, input_limit);
 	std::cout << "Done." << std::endl;
 
 	cross_validation(triplet_list, max_triplet_values, load_cached_data);
