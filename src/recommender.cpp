@@ -319,7 +319,26 @@ int main(int argc, char **argv)
 	const size_t triplet_list_reserve = 3000;
 	dataset_triplet_t max_triplet_values = {0, 0, 0};
 	triplet_list.reserve(input_limit == 0 ? triplet_list_reserve : input_limit);
-	read_dataset(std::cin, triplet_list, max_triplet_values, input_limit, skip_lines);
+	if (input_filename.empty() || input_filename == "-")
+	{
+		read_dataset(std::cin, triplet_list, max_triplet_values, 
+					 input_limit, skip_lines);
+	}
+	else
+	{
+		std::ifstream input_file(input_filename);
+		if (input_file.is_open())
+		{
+			read_dataset(input_file, triplet_list, max_triplet_values, 
+						 input_limit, skip_lines);
+			input_file.close();
+		}
+		else
+		{
+			std::cout << "Can't open file: \"" 
+					  << input_filename << "\"" << std::endl;
+		}
+	}
 	std::cout << "Done." << std::endl;
 
 	cross_validation(triplet_list, max_triplet_values, load_cached_data);
