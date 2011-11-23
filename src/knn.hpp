@@ -12,8 +12,8 @@ template <class R, class M>
 class kdtree_distance_t
 {
 public:
-	kdtree_distance_t(const R &avg_user_ratings, M &resemblance)
-		:m_avg_user_ratings(avg_user_ratings), 
+	kdtree_distance_t(const R &avg_product_ratings, M &resemblance)
+		:m_avg_product_ratings(avg_product_ratings), 
 		m_resemblance(resemblance)
 	{}
 	template <class U>
@@ -22,7 +22,7 @@ public:
 		float c = 0;
 		if (!false)	//TODO: if not present in 'm_resemblance' matrix
 		{
-			c = correlation_coeff(user1, user2, m_avg_user_ratings);
+			c = cosine_angle(user1, user2, m_avg_product_ratings);
 			m_resemblance(user1, user2) = c;
 			m_resemblance(user2, user1) = c;
 		}
@@ -30,11 +30,11 @@ public:
 		{
 			c = m_resemblance(user1, user2);
 		}
-		return c*c;
+		return (1 - c);
 	}
 	typedef float distance_type;
 private:
-	const R &m_avg_user_ratings;
+	const R &m_avg_product_ratings;
 	M &m_resemblance;
 };
 
@@ -53,7 +53,7 @@ void knn(M &knn_predict, double k,
 				kdtree_distance_t<itpp::vec, itpp::mat>	//squared distance between vectors (distance_type operator() (const _Tp& __a, const _Tp& __b) const)
 				> 
 				tree(KDTree::_Bracket_accessor<itpp::vec>(), 
-					kdtree_distance_t<itpp::vec, itpp::mat>(avg_users_rating, user_resemblance));
+					kdtree_distance_t<itpp::vec, itpp::mat>(avg_product_ratings, user_resemblance));
 	for (int i=0; i<users_ratings.rows(); ++i)	//users
 	{
 		tree.insert(users_ratings.get_row(i));
@@ -65,12 +65,12 @@ void knn(M &knn_predict, double k,
 		std::vector<itpp::vec> neighbours;
 		
 		// Nearest neighbours of the i-th user
-		std::cout << "neighbours of " << i << " (" << users_ratings.get_row(i) << ")" <<  std::endl;
+		std::cout << "neighbours of " << i << " (" << users_ratings.get_row(i) << ") within " << k << std::endl;
 		tree.find_within_range(users_ratings.get_row(i), k, 
 				std::back_insert_iterator<std::vector<itpp::vec>>(neighbours));
 		std::for_each(neighbours.begin(), neighbours.end(), 
-					  [&nearest_neighbours,&i,&avg_users_rating,&users_ratings](const itpp::vec &v){
-						  std::cout << "neighbour: " << v << " at distance " << correlation_coeff(users_ratings.get_row(i), v, avg_users_rating) << std::endl;
+					  [&nearest_neighbours,&i,&avg_product_ratings,&users_ratings](const itpp::vec &v){
+						  std::cout << "neighbour: " << v << " at distance " << 1 - cosine_angle(users_ratings.get_row(i), v, avg_product_ratings) << std::endl;
 						  nearest_neighbours.append_row(v);
 					});
 		

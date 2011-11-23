@@ -52,11 +52,11 @@ float correlation_coeff(const R &user1, const R &user2, const P &avg_user_rating
 template <class R, class P>
 float cosine_angle(const R &user1, const R &user2, const P &avg_prod_ratings)
 {
-	float numer = 0;
-	float denom = 0;
+	float numer = 0.0;
+	float denom = 0.0;
 	
-	float user1r_sq_sum = 0;
-	float user2r_sq_sum = 0;
+	float user1r_sq_sum = 0.0;
+	float user2r_sq_sum = 0.0;
 
 	// for each product
 	for (size_t i=0; i<avg_prod_ratings.size(); ++i)
@@ -66,10 +66,11 @@ float cosine_angle(const R &user1, const R &user2, const P &avg_prod_ratings)
 		user1r_sq_sum += user1[i]*user1[i];
 		user2r_sq_sum += user2[i]*user2[i];
 	}
+	//std::cout << "    " << numer << "\t" << user1r_sq_sum << "\t" << user2r_sq_sum << std::endl;
 
-	denom = sqrt(user1r_sq_sum)*sqrt(user2r_sq_sum);
+	denom = std::sqrt(user1r_sq_sum)*std::sqrt(user2r_sq_sum);
 
-	return numer/denom;
+	return numer/(float)denom;
 }
 
 template <class R>
