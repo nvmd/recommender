@@ -115,9 +115,39 @@ void cross_validation_get_sets(const T &triplets, T &validation, T &learning, fl
 	}
 }
 
+class id_to_matrix_idx_converter_t
+{
+public:
+	id_to_matrix_idx_converter_t(size_t table_size)
+		:m_conversion_table(table_size), m_used(0)
+	{
+		for (size_t i = 0; i < table_size; ++i)
+		{
+			m_conversion_table[i] = -1;
+		}
+	}
+	size_t operator()(size_t id)
+	{
+		if (m_conversion_table[id] == -1)
+		{
+			m_conversion_table[id] = m_used++;
+		}
+		return m_conversion_table[id];
+	}
+	size_t used_idxs() const
+	{
+		return m_used;
+	}
+private:
+	itpp::ivec m_conversion_table;
+	size_t m_used;
+};
+
 template <class M, class B, class T>
 void convert_triplets_to_matrix(M &matrix, B &matrix_mask, const T &triplets, 
-								const typename T::value_type &max_triplet_values)
+								const typename T::value_type &max_triplet_values,
+								id_to_matrix_idx_converter_t &users_converter,
+								id_to_matrix_idx_converter_t &products_converter)
 {
 	matrix.set_size(max_triplet_values.user+1, max_triplet_values.product+1);
 	matrix_mask.set_size(matrix.rows(), matrix.cols());
@@ -125,16 +155,21 @@ void convert_triplets_to_matrix(M &matrix, B &matrix_mask, const T &triplets,
 	matrix_mask.zeros();
 
 	std::for_each(triplets.begin(), triplets.end(), 
-		[&matrix,&matrix_mask](const typename T::value_type &x){
-			if (x.user >= static_cast<size_t>(matrix.rows()) 
-				|| x.product >= static_cast<size_t>(matrix.cols()))
+		[&](const typename T::value_type &x){
+			size_t user = users_converter(x.user);
+			size_t product = products_converter(x.product);
+			std::cout << "[user] converted id=" << x.user << " to " << user << std::endl;
+			std::cout << "[product] converted id=" << x.product << " to " << product << std::endl;
+			
+			if (user >= static_cast<size_t>(matrix.rows()) 
+				|| product >= static_cast<size_t>(matrix.cols()))
 			{
 				std::cout << "convert_triplets_to_matrix: resizing matrix" << std::endl;
-				matrix.set_size(x.user+1, x.product+1, true);
-				matrix_mask.set_size(x.user+1, x.product+1, true);
+				matrix.set_size(user+1, product+1, true);
+				matrix_mask.set_size(user+1, product+1, true);
 			}
-			matrix(x.user, x.product) = x.rating;
-			matrix_mask(x.user, x.product) = true;
+			matrix(user, product) = x.rating;
+			matrix_mask(user, product) = true;
 	});
 }
 
@@ -160,8 +195,24 @@ void cross_validation(const T &triplets,
 	validation_mask.zeros();
 
 	std::cout << "Converting triplets to matrices...";
-	convert_triplets_to_matrix(learning, learning_mask, learning_triplets, max_triplet_values);
-	convert_triplets_to_matrix(validation, validation_mask, validation_triplets, max_triplet_values);
+	id_to_matrix_idx_converter_t users_converter(max_triplet_values.user+1);
+	id_to_matrix_idx_converter_t products_converter(max_triplet_values.product+1);
+	convert_triplets_to_matrix(learning, learning_mask, learning_triplets, 
+							   max_triplet_values, 
+							   users_converter, products_converter);
+	convert_triplets_to_matrix(validation, validation_mask, validation_triplets, 
+							   max_triplet_values, 
+							   users_converter, products_converter);
+	//TODO: we should not, actually do this - this will take much time and memory
+	//allocate right amount of memory in the right place!
+	learning.set_size(users_converter.used_idxs(), 
+						 products_converter.used_idxs(), true);
+	learning_mask.set_size(users_converter.used_idxs(), 
+						 products_converter.used_idxs(), true);
+	validation.set_size(users_converter.used_idxs(), 
+						 products_converter.used_idxs(), true);
+	validation_mask.set_size(users_converter.used_idxs(), 
+						 products_converter.used_idxs(), true);
 	std::cout << "Done." << std::endl;
 	
 	std::cout << "Learning dataset: \n" << learning << std::endl;
