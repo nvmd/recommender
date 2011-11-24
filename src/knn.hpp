@@ -55,9 +55,9 @@ void knn(M &knn_predict, double k,
 	kdtree_bracket_accessor_type kdtree_bracket_accessor;
 	kdtree_distance_type kdtree_distance;
 	
-	KDTree::KDTree<5, kdtree_value_type, 
+	KDTree::KDTree<kdtree_value_type, 
 				   kdtree_bracket_accessor_type, kdtree_distance_type> 
-				   tree(kdtree_bracket_accessor, kdtree_distance);
+				   tree(users_ratings.cols(), kdtree_bracket_accessor, kdtree_distance);
 	for (int i=0; i<users_ratings.rows(); ++i)	//users
 	{
 		tree.insert(users_ratings.get_row(i));
