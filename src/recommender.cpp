@@ -61,7 +61,7 @@ void avg_ratings(const M &users_ratings, const B &users_ratings_mask,
 				avg_users_rating[i] += users_ratings(i,j);
 			}
 		}
-		avg_users_rating[i] /= valuable;
+		avg_users_rating[i] = valuable > 0 ? avg_users_rating[i]/valuable : 0;
 	}
 	
 	for (int i=0; i<users_ratings.cols(); ++i)
@@ -75,7 +75,7 @@ void avg_ratings(const M &users_ratings, const B &users_ratings_mask,
 				avg_product_ratings[i] += users_ratings(j,i);
 			}
 		}
-		avg_product_ratings[i] /= valuable;
+		avg_product_ratings[i] = valuable > 0 ? avg_product_ratings[i]/valuable : 0;
 	}
 #else
 #error ALG_ITPP_IMPL implementation of avg_ratings is obsolete
@@ -158,13 +158,14 @@ void convert_triplets_to_matrix(M &matrix, B &matrix_mask, const T &triplets,
 		[&](const typename T::value_type &x){
 			size_t user = users_converter(x.user);
 			size_t product = products_converter(x.product);
-			std::cout << "[user] converted id=" << x.user << " to " << user << std::endl;
-			std::cout << "[product] converted id=" << x.product << " to " << product << std::endl;
+			std::cout << "(" << x.user << ", " << x.product << ") -> (" 
+							 << user << ", " << product << ")" << std::endl;
 			
 			if (user >= static_cast<size_t>(matrix.rows()) 
 				|| product >= static_cast<size_t>(matrix.cols()))
 			{
-				std::cout << "convert_triplets_to_matrix: resizing matrix" << std::endl;
+				std::cout << "convert_triplets_to_matrix: resizing matrix" 
+						  << std::endl;
 				matrix.set_size(user+1, product+1, true);
 				matrix_mask.set_size(user+1, product+1, true);
 			}
@@ -291,7 +292,8 @@ void read_dataset(F &file, L &triplet_list, T &max_triplet_values, size_t input_
 	while ((input_limit == 0 || triplet_list.size() < input_limit) 
 			&& file >> triplet.user >> triplet.product >> triplet.rating)
 	{
-		std::cout << "(" << triplet.user << "," << triplet.product << ") -> " << triplet.rating << std::endl;
+		std::cout << "(" << triplet.user << ", " << triplet.product << ") -> " 
+						 << triplet.rating << std::endl;
 
 		max_triplet_values.user = std::max(max_triplet_values.user, triplet.user);
 		max_triplet_values.product = std::max(max_triplet_values.product, triplet.product);

@@ -69,12 +69,12 @@ void knn(M &knn_predict, double k,
 		std::vector<kdtree_value_type> neighbours;
 		
 		// Nearest neighbours of the i-th user
-		std::cout << "neighbours of " << i << " (" << users_ratings.get_row(i) << ") within " << k << std::endl;
+		std::cout << "\nNeighbours of " << i << " (" << users_ratings.get_row(i) << ") within " << k << ": " << std::endl;
 		tree.find_within_range(users_ratings.get_row(i), k, 
 				std::back_insert_iterator<std::vector<kdtree_value_type>>(neighbours));
 		std::for_each(neighbours.begin(), neighbours.end(), 
 					  [&nearest_neighbours,&i,&users_ratings,&kdtree_distance](const kdtree_value_type &v){
-						  std::cout << "neighbour: " << v << " at distance " << kdtree_distance(users_ratings.get_row(i), v) << std::endl;
+						  std::cout << "\t" << v << " at distance " << kdtree_distance(users_ratings.get_row(i), v) << std::endl;
 						  nearest_neighbours.append_row(v);
 					});
 		
@@ -90,8 +90,6 @@ void knn(M &knn_predict, double k,
 											user_resemblance);
 			}
 		}
-		std::cout << "nearest neighbours of " << i << ": " << nearest_neighbours << std::endl;
-		std::cout << "knn_predict: " << knn_predict << std::endl;
 	}
 }
 
