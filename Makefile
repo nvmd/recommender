@@ -16,7 +16,7 @@ LDFLAGS = $(LIB_PATH) $(LIBS)
 
 all: prepare $(TARGET)
 
-$(TARGET): obj/recommender.o src/error.hpp src/grouplens.hpp src/user_resemblance.hpp src/knn.hpp
+$(TARGET): obj/recommender.o src/error.hpp src/grouplens.hpp src/user_resemblance.hpp src/knn.hpp src/dataset_io.hpp src/cross_validation.hpp
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $?
 obj/recommender.o: src/recommender.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@

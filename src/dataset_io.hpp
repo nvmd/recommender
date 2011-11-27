@@ -4,6 +4,8 @@
 
 #include <locale>
 #include <vector>
+#include <algorithm>
+#include <iostream>
 
 #include <itpp/base/vec.h>
 
