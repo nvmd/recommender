@@ -11,56 +11,102 @@
 
 int main(int argc, char **argv)
 {
+	bool do_cross_validation = true;
+	std::string recommendation_request_filename("");
+	
 	std::string input_filename("");
-	std::string output_filename("out.csv");
 	size_t skip_lines = 0;
 	size_t input_limit = 0;
+	
+	size_t recom_skip_lines = 0;
+	size_t recom_input_limit = 0;
+	std::string recom_output_filename("out.csv");
+	
 	bool load_cached_data = false;
 
 	try
 	{
 		TCLAP::CmdLine cmd("Recommender", ' ', "0.0");
-
-		TCLAP::ValueArg<std::string> input_filename_arg("i", "input-filename", 
-										"Input filename", 
+		
+		// Modes of operation: cross-validation, recommendation
+		TCLAP::SwitchArg cross_validation_arg("v", "cross-validation", 
+										"Do cross validation", 
+										cmd, 
+										do_cross_validation);
+		
+		TCLAP::ValueArg<std::string> recommendation_arg("r", "recommendation", 
+										"Recommendation request filename", 
+										false, 
+										recommendation_request_filename, 
+										"string", 
+										cmd);
+		
+		// Dataset
+		TCLAP::ValueArg<std::string> input_filename_arg("d", "dataset-filename", 
+										"Dataset filename", 
 										false, 
 										input_filename, 
 										"string", 
 										cmd);
 		
-		TCLAP::ValueArg<std::string> output_filename_arg("o", "output-filename", 
-										"Output filename", 
-										false, 
-										output_filename, 
-										"string", 
-										cmd);
-	
-		TCLAP::ValueArg<size_t> skip_lines_arg("s", "skip-lines", 
+		TCLAP::ValueArg<size_t> skip_lines_arg("s", "dataset-skip-lines", 
 										"Skip lines at the beginning of the input file", 
 										false, 
 										skip_lines, 
 										"unsigned integer", 
 										cmd);
 		
-		TCLAP::ValueArg<size_t> input_limit_arg("l", "input-limit", 
+		TCLAP::ValueArg<size_t> input_limit_arg("l", "dataset-input-limit", 
 										"Input limit (triplets)", 
 										false, 
 										input_limit, 
 										"unsigned integer", 
 										cmd);
 		
+		// Recommendation request parameters
+		TCLAP::ValueArg<size_t> recom_skip_lines_arg("k", "recom-skip-lines", 
+										"Skip lines at the beginning of the input file", 
+										false, 
+										recom_skip_lines, 
+										"unsigned integer", 
+										cmd);
+		
+		TCLAP::ValueArg<size_t> recom_input_limit_arg("m", "recom-input-limit", 
+										"Input limit (triplets)", 
+										false, 
+										recom_input_limit, 
+										"unsigned integer", 
+										cmd);
+		
+		TCLAP::ValueArg<std::string> output_filename_arg("o", "recom-output-filename", 
+										"Output filename", 
+										false, 
+										recom_output_filename, 
+										"string", 
+										cmd);
+		
+		
 		TCLAP::SwitchArg load_cached_data_arg("c", "load-cached-data", 
 										"Load cached auxiliary data", 
 										cmd, 
 										load_cached_data);
 		
-		// parse command line
+		
+		// Parse command line
 		cmd.parse(argc, argv);
 
+		// Read arguments' values
+		do_cross_validation = cross_validation_arg.getValue();
+		recommendation_request_filename = recommendation_arg.getValue();
+		
 		input_filename = input_filename_arg.getValue();
-		output_filename = output_filename_arg.getValue();
 		skip_lines = skip_lines_arg.getValue();
 		input_limit = input_limit_arg.getValue();
+		
+		recom_skip_lines = recom_skip_lines_arg.getValue();
+		recom_input_limit = recom_input_limit_arg.getValue();
+		recom_output_filename = output_filename_arg.getValue();
+		
 		load_cached_data = load_cached_data_arg.getValue();
 	}
 	catch(TCLAP::ArgException &excp)
@@ -102,7 +148,34 @@ int main(int argc, char **argv)
 	}
 	std::cout << "Done." << std::endl;
 
-	cross_validation(triplet_list, max_triplet_values, load_cached_data);
+	if (do_cross_validation)
+	{
+		cross_validation(triplet_list, max_triplet_values, load_cached_data);
+	}
+	
+	if (!recommendation_request_filename.empty())
+	{
+		std::vector<dataset_triplet_t> recom_triplet_list;
+		const size_t recom_triplet_list_reserve = 3000;
+		dataset_triplet_t recom_max_triplet_values = {0, 0, 0};
+		recom_triplet_list.reserve(input_limit == 0 ? recom_triplet_list_reserve : recom_input_limit);
+		
+		std::ifstream input_file(recommendation_request_filename);
+		if (input_file.is_open())
+		{
+			read_dataset(input_file, recom_triplet_list,recom_max_triplet_values, 
+						 recom_input_limit, recom_skip_lines);
+			input_file.close();
+		}
+		else
+		{
+			std::cout << "Can't open file: \"" 
+					  << input_filename << "\"" << std::endl;
+		}
+		
+		// launch recommender_t
+		std::cout << "Recommendations will be here someday." << std::endl;
+	}
 
 	return 0;
 }
