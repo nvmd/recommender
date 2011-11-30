@@ -13,8 +13,6 @@ int main(int argc, char **argv)
 {
 	bool do_cross_validation = true;
 	std::string recommendation_request_filename("");
-
-	std::cout << " Hello world! " << std::endl;
 	
 	std::string input_filename("");
 	size_t skip_lines = 0;
