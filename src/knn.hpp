@@ -20,7 +20,7 @@ public:
 	{
 		float c = 0;
 		c = cosine_angle(user1, user2);
-		return (c);
+		return c*c;
 	}
 	typedef float distance_type;
 };
@@ -50,7 +50,6 @@ void knn(M &knn_predict, double k,
 	//access i-th element of the vector (using operator[]) (result_type operator()(_Val const& V, size_t const N) const)
 	typedef KDTree::_Bracket_accessor<itpp::vec> kdtree_bracket_accessor_type;
 	//squared distance between vectors (distance_type operator() (const _Tp& __a, const _Tp& __b) const)
-	//typedef kdtree_distance_cosine_angle_t kdtree_distance_type;
 	typedef kdtree_distance_correlation_coeff_t kdtree_distance_type;
 	
 	kdtree_bracket_accessor_type kdtree_bracket_accessor;
