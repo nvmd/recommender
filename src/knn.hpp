@@ -51,12 +51,12 @@ void k_nearest(T &tree, const V &value, size_t k, OutputIterator out)
 	while (found < k)
 	{
 		std::pair<typename T::const_iterator, typename T::distance_type> nearest = tree.find_nearest(value);
-//  		if (nearest.first == tree.end())
-//  			return;
-// 		//neighbours.push_back(*(nearest.first));
-// // 		++out = nearest.first;
+ 		if (nearest.first == tree.end())
+ 			return;
+		neighbours.push_back(*(nearest.first));
+		++out = nearest.first;
 		++found;
-// 		tree.erase_exact(nearest.first);
+		tree.erase_exact(nearest.first);
 	}
 	std::for_each(neighbours.begin(), neighbours.end(), 
 				  [&tree](const V &x) {
@@ -95,14 +95,16 @@ void knn(M &knn_predict, double k,
 		std::vector<kdtree_value_type> neighbours;
 		
 		// Nearest neighbours of the i-th user
-//		std::cout << "\nNeighbours of " << i << " (" << users_ratings.get_row(i) << ") within " << k << ": " << std::endl;
-// 		tree.find_within_range(users_ratings.get_row(i), k, 
-// 				std::back_insert_iterator<std::vector<kdtree_value_type>>(neighbours));
-		
+#define KNN_WITHIN_RANGE
+#if defined(KNN_WITHIN_RANGE)
+		std::cout << "\nNeighbours of " << i << " (" << users_ratings.get_row(i) << ") within " << k << ": " << std::endl;
+		tree.find_within_range(users_ratings.get_row(i), k, 
+				std::back_insert_iterator<std::vector<kdtree_value_type>>(neighbours));
+#else
 		std::cout << "\n" << k << " nearest neighbours of " << i << " (" << users_ratings.get_row(i) << "): " << std::endl;
 		k_nearest(tree, users_ratings.get_row(i), k, 
 				  std::back_insert_iterator<std::vector<kdtree_value_type>>(neighbours));
-		
+#endif	
 		std::for_each(neighbours.begin(), neighbours.end(), 
 					  [&nearest_neighbours,&i,&users_ratings,&kdtree_distance](const kdtree_value_type &v){
 						  std::cout << "\t" << v << " at distance " << kdtree_distance(users_ratings.get_row(i), v) << std::endl;
