@@ -29,7 +29,7 @@ float grouplens(const V &avg_product_rating, const M &users_rating,
 		denom += std::abs(user_resemblance);
 	}
 	
-	return avg_product_rating[product] + (numer/denom);
+	return avg_users_rating[user] + avg_product_rating[product] + (numer/denom);
 }
 
 template <class M, class V, class R, class B>
