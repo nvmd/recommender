@@ -4,6 +4,8 @@
 
 #include <vector>
 #include <iostream>
+#include <algorithm>
+#include <utility>
 
 #include <itpp/base/mat.h>
 #include <kdtree++/kdtree.hpp>
@@ -40,6 +42,29 @@ public:
 	typedef float distance_type;
 };
 
+template <class T, class V, class OutputIterator>
+void k_nearest(T &tree, const V &value, size_t k, OutputIterator out)
+{
+	size_t found = 0;
+	std::vector<V> neighbours;
+	neighbours.reserve(k+1);
+	while (found < k)
+	{
+		std::pair<typename T::const_iterator, typename T::distance_type> nearest = tree.find_nearest(value);
+//  		if (nearest.first == tree.end())
+//  			return;
+// 		//neighbours.push_back(*(nearest.first));
+// // 		++out = nearest.first;
+		++found;
+// 		tree.erase_exact(nearest.first);
+	}
+	std::for_each(neighbours.begin(), neighbours.end(), 
+				  [&tree](const V &x) {
+					tree.insert(x);
+				  });
+	tree.optimise();
+}
+
 template <class M, class V, class R, class B>
 void knn(M &knn_predict, double k, 
 		 const M &users_ratings, const B &users_ratings_mask, 
@@ -51,13 +76,14 @@ void knn(M &knn_predict, double k,
 	typedef KDTree::_Bracket_accessor<itpp::vec> kdtree_bracket_accessor_type;
 	//squared distance between vectors (distance_type operator() (const _Tp& __a, const _Tp& __b) const)
 	typedef kdtree_distance_correlation_coeff_t kdtree_distance_type;
+	typedef KDTree::KDTree<kdtree_value_type, 
+						   kdtree_bracket_accessor_type, 
+						   kdtree_distance_type> kdtree_type;
 	
 	kdtree_bracket_accessor_type kdtree_bracket_accessor;
 	kdtree_distance_type kdtree_distance;
 	
-	KDTree::KDTree<kdtree_value_type, 
-				   kdtree_bracket_accessor_type, kdtree_distance_type> 
-				   tree(users_ratings.cols(), kdtree_bracket_accessor, kdtree_distance);
+	kdtree_type tree(users_ratings.cols(), kdtree_bracket_accessor, kdtree_distance);
 	for (int i=0; i<users_ratings.rows(); ++i)	//users
 	{
 		tree.insert(users_ratings.get_row(i));
@@ -69,9 +95,14 @@ void knn(M &knn_predict, double k,
 		std::vector<kdtree_value_type> neighbours;
 		
 		// Nearest neighbours of the i-th user
-		std::cout << "\nNeighbours of " << i << " (" << users_ratings.get_row(i) << ") within " << k << ": " << std::endl;
-		tree.find_within_range(users_ratings.get_row(i), k, 
-				std::back_insert_iterator<std::vector<kdtree_value_type>>(neighbours));
+//		std::cout << "\nNeighbours of " << i << " (" << users_ratings.get_row(i) << ") within " << k << ": " << std::endl;
+// 		tree.find_within_range(users_ratings.get_row(i), k, 
+// 				std::back_insert_iterator<std::vector<kdtree_value_type>>(neighbours));
+		
+		std::cout << "\n" << k << " nearest neighbours of " << i << " (" << users_ratings.get_row(i) << "): " << std::endl;
+		k_nearest(tree, users_ratings.get_row(i), k, 
+				  std::back_insert_iterator<std::vector<kdtree_value_type>>(neighbours));
+		
 		std::for_each(neighbours.begin(), neighbours.end(), 
 					  [&nearest_neighbours,&i,&users_ratings,&kdtree_distance](const kdtree_value_type &v){
 						  std::cout << "\t" << v << " at distance " << kdtree_distance(users_ratings.get_row(i), v) << std::endl;

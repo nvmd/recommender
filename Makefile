@@ -3,7 +3,7 @@ TARGET = bin/recommender
 #LIBS = -litpp_debug
 LIBS = -litpp
 DEFINES = -DALG_ITPP_IMPL -D_DEBUG
-LIB_PATH = -L$(HOME)/develop.lib/itpp-4.2.0/lib
+LIB_PATH = 
 INCLUDES = -I inc -I $(HOME)/develop.lib/libkdtree-master/include -I $(HOME)/develop.lib/tclap/include
 
 #CXX_OPT_FLAGS = -O0
