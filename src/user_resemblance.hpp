@@ -2,18 +2,20 @@
 #ifndef SPBAU_RECOMMENDER_USER_RESEMBLANCE_HPP_
 #define SPBAU_RECOMMENDER_USER_RESEMBLANCE_HPP_
 
+/// 4.3.2 Similarity Weight Computation
+/// Recommender Systems Handbook By Francesco Ricci, Lior Rokach, Paul B. Kantor, p.124
+
 #include <cstddef>
 #include <cmath>
 
 #include <itpp/itbase.h>
 #include <itpp/stat/misc_stat.h>
 
-/// Correlation coefficient
+/// Pearson Correlation (PC) (p.125)
 /// \tparam R User's ratings of products - vector type (R[i] - rating of a product i)
 /// \tparam P Average ratings for products - vector type (P[i] - average rating of product i)
 /// \param[in] user1 
 /// \param[in] user2 
-/// \param[in] avg_user_ratings 
 /// \return Correlation coefficient of 'user1' and 'user2'
 template <class R>
 float correlation_coeff(const R &user1, const R &user2)
@@ -46,10 +48,13 @@ float correlation_coeff(const R &user1, const R &user2)
 	user2r_sq_sum = sum_sqr(user2r);
 #endif
 	denom = std::sqrt(user1r_sq_sum) * std::sqrt(user2r_sq_sum);
+	//denom = std::sqrt(user1r_sq_sum * user2r_sq_sum); //in Recommender Systems Handbook
 
 	return numer/denom;
 }
 
+/// Cosine Vector (CV) (or Vector Space)
+/// p.124
 template <class R>
 float cosine_angle(const R &user1, const R &user2)
 {
@@ -69,6 +74,41 @@ float cosine_angle(const R &user1, const R &user2)
 	}
 
 	denom = std::sqrt(user1r_sq_sum) * std::sqrt(user2r_sq_sum);
+	//denom = std::sqrt(user1r_sq_sum * user2r_sq_sum); //in Recommender Systems Handbook
+
+	return numer/denom;
+}
+
+/// Frequency-Weighted Pearson Correlation (FWPC)
+/// Recommender Systems Handbook By Francesco Ricci, Lior Rokach, Paul B. Kantor, p.129
+/// \tparam R User's ratings of products - vector type (R[i] - rating of a product i)
+/// \tparam M Inverse user frequency metric (typically f_a = log(N/N_a))
+/// \param[in] user1 
+/// \param[in] user2 
+/// \param[in] metric
+/// \return Correlation coefficient of 'user1' and 'user2'
+template <class R, class M>
+float correlation_coeff_idf(const R &user1, const R &user2, const M &metric)
+{
+	float numer = 0;
+	float denom = 0;
+
+	float user1r_sq_sum = 0;
+	float user2r_sq_sum = 0;
+	
+	//for each product
+	for (int i = 0; i < user1.size(); ++i)
+	{
+		float user1r = user1[i] - mean(user1);
+		float user2r = user2[i] - mean(user2);
+		numer += metric(i) * user1r * user2r;
+
+		user1r_sq_sum += metric(i) * user1r * user1r;
+		user2r_sq_sum += metric(i) * user2r * user2r;
+	}
+	
+	denom = std::sqrt(user1r_sq_sum) * std::sqrt(user2r_sq_sum);
+	//denom = std::sqrt(user1r_sq_sum * user2r_sq_sum); //in Recommender Systems Handbook
 
 	return numer/denom;
 }
