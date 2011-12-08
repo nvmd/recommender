@@ -66,7 +66,8 @@ template <class M, class B, class T>
 void convert_triplets_to_matrix(M &matrix, B &matrix_mask, const T &triplets, 
 								const typename T::value_type &max_triplet_values,
 								id_to_matrix_idx_converter_t &users_converter,
-								id_to_matrix_idx_converter_t &products_converter)
+								id_to_matrix_idx_converter_t &products_converter,
+								size_t verbosity = 0)
 {
 	matrix.set_size(max_triplet_values.user+1, max_triplet_values.product+1);
 	matrix_mask.set_size(matrix.rows(), matrix.cols());
@@ -77,14 +78,21 @@ void convert_triplets_to_matrix(M &matrix, B &matrix_mask, const T &triplets,
 		[&](const typename T::value_type &x){
 			size_t user = users_converter(x.user);
 			size_t product = products_converter(x.product);
-			std::cout << "(" << x.user << ", " << x.product << ") -> (" 
+			
+			if (verbosity >= 2)
+			{
+				std::cout << "(" << x.user << ", " << x.product << ") -> (" 
 							 << user << ", " << product << ")" << std::endl;
+			}
 			
 			if (user >= static_cast<size_t>(matrix.rows()) 
 				|| product >= static_cast<size_t>(matrix.cols()))
 			{
-				std::cout << "convert_triplets_to_matrix: resizing matrix" 
-						  << std::endl;
+				if (verbosity >= 2)
+				{
+					std::cout << "convert_triplets_to_matrix: resizing matrix" 
+							<< std::endl;
+				}
 				matrix.set_size(user+1, product+1, true);
 				matrix_mask.set_size(user+1, product+1, true);
 			}
@@ -94,7 +102,9 @@ void convert_triplets_to_matrix(M &matrix, B &matrix_mask, const T &triplets,
 }
 
 template <class F, class L, class T>
-void read_dataset(F &file, L &triplet_list, T &max_triplet_values, size_t input_limit = 0, size_t skip_lines = 0)
+void read_dataset(F &file, L &triplet_list, T &max_triplet_values, 
+				  size_t input_limit = 0, size_t skip_lines = 0,
+				  size_t verbosity = 0)
 {
 	file.imbue(std::locale(std::locale(), new csv_locale_facet()));
 	dataset_triplet_t triplet = {0, 0, 0};
@@ -104,14 +114,20 @@ void read_dataset(F &file, L &triplet_list, T &max_triplet_values, size_t input_
 	while (lines_skipped++ < skip_lines)
 	{
 		std::getline(file, line);
-		std::cout << "Skipped line: \"" << line << "\"" << std::endl;
+		if (verbosity >= 2)
+		{
+			std::cout << "Skipped line: \"" << line << "\"" << std::endl;
+		}
 	}
 	
 	while ((input_limit == 0 || triplet_list.size() < input_limit) 
 			&& file >> triplet.user >> triplet.product >> triplet.rating)
 	{
-		std::cout << "(" << triplet.user << ", " << triplet.product << ") -> " 
-						 << triplet.rating << std::endl;
+		if (verbosity >= 3)
+		{
+			std::cout << "(" << triplet.user << ", " << triplet.product << ") -> " 
+								<< triplet.rating << std::endl;
+		}
 
 		max_triplet_values.user = std::max(max_triplet_values.user, triplet.user);
 		max_triplet_values.product = std::max(max_triplet_values.product, triplet.product);

@@ -88,13 +88,20 @@ void avg_ratings(const M &users_ratings, const B &users_ratings_mask,
 template <class T>
 void cross_validation(const T &triplets, 
 					  const typename T::value_type &max_triplet_values, 
-					  bool prefer_cached_data)
+					  bool prefer_cached_data, size_t verbosity = 0)
 {
 	T validation_triplets;
 	T learning_triplets;
-	std::cout << "Generating cross-validation data sets...";
+	
+	if (verbosity >= 1)
+	{
+		std::cout << "Generating cross-validation data sets...";
+	}
 	cross_validation_get_sets(triplets, validation_triplets, learning_triplets, 0.1);
-	std::cout << "Done." << std::endl;
+	if (verbosity >= 1)
+	{
+		std::cout << "Done." << std::endl;
+	}
 	
 	itpp::mat learning;
 	itpp::bmat learning_mask;
@@ -106,7 +113,10 @@ void cross_validation(const T &triplets,
 	validation.zeros();
 	validation_mask.zeros();
 
-	std::cout << "Converting triplets to matrices...";
+	if (verbosity >= 1)
+	{
+		std::cout << "Converting triplets to matrices...";
+	}
 	id_to_matrix_idx_converter_t users_converter(max_triplet_values.user+1);
 	id_to_matrix_idx_converter_t products_converter(max_triplet_values.product+1);
 	convert_triplets_to_matrix(learning, learning_mask, learning_triplets, 
@@ -125,24 +135,39 @@ void cross_validation(const T &triplets,
 						 products_converter.used_idxs(), true);
 	validation_mask.set_size(users_converter.used_idxs(), 
 						 products_converter.used_idxs(), true);
-	std::cout << "Done." << std::endl;
+	if (verbosity >= 1)
+	{
+		std::cout << "Done." << std::endl;
+	}
 	
-	std::cout << "Learning dataset: \n" << learning << std::endl;
-	std::cout << "Learning dataset mask: \n" << learning_mask << std::endl;
-	std::cout << "Validation dataset: \n" << validation << std::endl;
-	std::cout << "Validation dataset mask: \n" << validation_mask << std::endl;
+	if (verbosity >= 2)
+	{
+		std::cout << "Learning dataset: \n" << learning << std::endl;
+		std::cout << "Learning dataset mask: \n" << learning_mask << std::endl;
+		std::cout << "Validation dataset: \n" << validation << std::endl;
+		std::cout << "Validation dataset mask: \n" << validation_mask << std::endl;
+	}
 
 	// Average user's and product's ratings
-	std::cout << "Average user's and product's ratings...";
+	if (verbosity >= 1)
+	{
+		std::cout << "Average user's and product's ratings...";
+	}
 	itpp::vec avg_users_rating(learning.rows());
 	itpp::vec avg_product_ratings(learning.cols());
 	avg_users_rating.zeros();
 	avg_product_ratings.zeros();
 	avg_ratings(learning, learning_mask, avg_users_rating, avg_product_ratings);
-	std::cout << "Done." << std::endl;
+	if (verbosity >= 1)
+	{
+		std::cout << "Done." << std::endl;
+	}
 	
-	std::cout << "Avg. users' ratings: \n" << avg_users_rating << std::endl;
-	std::cout << "Avg. products' ratings: \n" << avg_product_ratings << std::endl;
+	if (verbosity >= 2)
+	{
+		std::cout << "Avg. users' ratings: \n" << avg_users_rating << std::endl;
+		std::cout << "Avg. products' ratings: \n" << avg_product_ratings << std::endl;
+	}
 	
 	// Users' resemblance
 	itpp::mat user_resemblance(learning.rows(), learning.rows());
@@ -156,20 +181,32 @@ void cross_validation(const T &triplets,
 										  correlation_coeff_resembl_metric_t());
 	
 	// GroupLens
-	std::cout << "GroupLens...";
+	if (verbosity >= 1)
+	{
+		std::cout << "GroupLens...";
+	}
 	itpp::mat grouplens_predict(learning.rows(), learning.cols());
 	grouplens_predict.zeros();
 	grouplens(grouplens_predict, learning, learning_mask, 
 			  u_resemblance, avg_users_rating, avg_product_ratings);
-	std::cout << "Done." << std::endl;
+	if (verbosity >= 1)
+	{
+		std::cout << "Done." << std::endl;
+	}
 	
 	// k-NN
-	std::cout << "k-NN...";
+	if (verbosity >= 1)
+	{
+		std::cout << "k-NN...";
+	}
 	itpp::mat knn_predict(learning.rows(), learning.cols());
 	knn_predict.zeros();
 	knn(knn_predict, 2, learning, learning_mask, 
-		user_resemblance, avg_users_rating, avg_product_ratings);
-	std::cout << "Done." << std::endl;
+		user_resemblance, avg_users_rating, avg_product_ratings, verbosity);
+	if (verbosity >= 1)
+	{
+		std::cout << "Done." << std::endl;
+	}
 	
 	// Validation
 	// validation and learning data should be of equal dimensions

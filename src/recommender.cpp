@@ -23,6 +23,7 @@ int main(int argc, char **argv)
 	std::string recom_output_filename("out.csv");
 	
 	bool load_cached_data = false;
+	size_t output_verbosity = 0;
 
 	try
 	{
@@ -85,6 +86,12 @@ int main(int argc, char **argv)
 										"string", 
 										cmd);
 		
+		TCLAP::ValueArg<size_t> verbosity_arg("z", "verbosity",
+										"Output verbosity",
+										false,
+										output_verbosity,
+										"unsigned integer",
+										cmd);
 		
 		TCLAP::SwitchArg load_cached_data_arg("c", "load-cached-data", 
 										"Load cached auxiliary data", 
@@ -108,6 +115,7 @@ int main(int argc, char **argv)
 		recom_output_filename = output_filename_arg.getValue();
 		
 		load_cached_data = load_cached_data_arg.getValue();
+		output_verbosity = verbosity_arg.getValue();
 	}
 	catch(TCLAP::ArgException &excp)
 	{
@@ -121,7 +129,10 @@ int main(int argc, char **argv)
 		perror("setvbuf");
 	}
 	
-	std::cout << "Reading dataset...";
+	if (output_verbosity >= 1)
+	{
+		std::cout << "Reading dataset...";
+	}
 	std::vector<dataset_triplet_t> triplet_list;
 	const size_t triplet_list_reserve = 3000;
 	dataset_triplet_t max_triplet_values = {0, 0, 0};
@@ -129,7 +140,7 @@ int main(int argc, char **argv)
 	if (input_filename.empty() || input_filename == "-")
 	{
 		read_dataset(std::cin, triplet_list, max_triplet_values, 
-					 input_limit, skip_lines);
+					 input_limit, skip_lines, output_verbosity);
 	}
 	else
 	{
@@ -137,7 +148,7 @@ int main(int argc, char **argv)
 		if (input_file.is_open())
 		{
 			read_dataset(input_file, triplet_list, max_triplet_values, 
-						 input_limit, skip_lines);
+						 input_limit, skip_lines, output_verbosity);
 			input_file.close();
 		}
 		else
@@ -146,11 +157,15 @@ int main(int argc, char **argv)
 					  << input_filename << "\"" << std::endl;
 		}
 	}
-	std::cout << "Done." << std::endl;
+	if (output_verbosity >= 1)
+	{
+		std::cout << "Done." << std::endl;
+	}
 
 	if (do_cross_validation)
 	{
-		cross_validation(triplet_list, max_triplet_values, load_cached_data);
+		cross_validation(triplet_list, max_triplet_values, 
+						 load_cached_data, output_verbosity);
 	}
 	
 	if (!recommendation_request_filename.empty())
@@ -164,7 +179,7 @@ int main(int argc, char **argv)
 		if (input_file.is_open())
 		{
 			read_dataset(input_file, recom_triplet_list,recom_max_triplet_values, 
-						 recom_input_limit, recom_skip_lines);
+						 recom_input_limit, recom_skip_lines, output_verbosity);
 			input_file.close();
 		}
 		else

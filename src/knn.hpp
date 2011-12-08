@@ -69,7 +69,8 @@ template <class M, class V, class R, class B>
 void knn(M &knn_predict, double k, 
 		 const M &users_ratings, const B &users_ratings_mask, 
 		 R &user_resemblance, 
-		 const V &avg_users_rating, const V &avg_product_ratings)
+		 const V &avg_users_rating, const V &avg_product_ratings,
+		 size_t verbosity = 0)
 {
 	typedef itpp::vec kdtree_value_type;
 	//access i-th element of the vector (using operator[]) (result_type operator()(_Val const& V, size_t const N) const)
@@ -97,18 +98,31 @@ void knn(M &knn_predict, double k,
 		// Nearest neighbours of the i-th user
 #define KNN_WITHIN_RANGE
 #if defined(KNN_WITHIN_RANGE)
-		std::cout << "\nNeighbours of " << i << " (" << users_ratings.get_row(i) << ") within " << k << ": " << std::endl;
+		if (verbosity >= 2)
+		{
+			std::cout << "\nNeighbours of " << i 
+						<< " (" << users_ratings.get_row(i) 
+						<< ") within " << k << ": " << std::endl;
+		}
 		tree.find_within_range(users_ratings.get_row(i), k, 
 				std::back_insert_iterator<std::vector<kdtree_value_type>>(neighbours));
 #else
-		std::cout << "\n" << k << " nearest neighbours of " << i << " (" << users_ratings.get_row(i) << "): " << std::endl;
+		if (verbosity >= 2)
+		{
+			std::cout << "\n" << k << " nearest neighbours of " << i 
+					<< " (" << users_ratings.get_row(i) << "): " << std::endl;
+		}
 		k_nearest(tree, users_ratings.get_row(i), k, 
 				  std::back_insert_iterator<std::vector<kdtree_value_type>>(neighbours));
 #endif	
 		std::for_each(neighbours.begin(), neighbours.end(), 
-					  [&nearest_neighbours,&i,&users_ratings,&kdtree_distance](const kdtree_value_type &v){
-						  std::cout << "\t" << v << " at distance " << kdtree_distance(users_ratings.get_row(i), v) << std::endl;
-						  nearest_neighbours.append_row(v);
+					  [&](const kdtree_value_type &v){
+						if (verbosity >= 2)
+						{
+							std::cout << "\t" << v << " at distance " 
+									<< kdtree_distance(users_ratings.get_row(i), v) << std::endl;
+						}
+						nearest_neighbours.append_row(v);
 					});
 		
 		//assert(users_ratings.cols() == nearest_neighbours.cols());
