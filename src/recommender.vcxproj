@@ -85,8 +85,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="cross_validation.hpp" />
+    <ClInclude Include="dataset_io.hpp" />
     <ClInclude Include="error.hpp" />
     <ClInclude Include="grouplens.hpp" />
+    <ClInclude Include="knn.hpp" />
     <ClInclude Include="user_resemblance.hpp" />
   </ItemGroup>
   <ItemGroup>
