@@ -3,6 +3,8 @@
 #define SPBAU_RECOMMENDER_CROSS_VALIDATION_HPP_
 
 #include <iostream>
+#include <string>
+#include <memory>
 
 #include <itpp/itbase.h>
 #include <itpp/base/vec.h>
@@ -10,9 +12,9 @@
 
 #include "dataset_io.hpp"
 #include "user_resemblance.hpp"
-#include "grouplens.hpp"
 #include "error.hpp"
-#include "knn.hpp"
+#include "collaborative_filtering.hpp"
+
 
 template <class T>
 void cross_validation_get_sets(const T &triplets, T &validation, T &learning, float validation_rel_size = 0.1)
@@ -85,6 +87,67 @@ void avg_ratings(const M &users_ratings, const B &users_ratings_mask,
 #endif
 }
 
+template <class D, class M, typename AlgoInputIterator>
+void validate_algorithms(const D &learning, const M &learning_mask,
+						   const D &validation, const M &validation_mask,
+						   AlgoInputIterator algo_begin, AlgoInputIterator algo_end,
+						   size_t verbosity = 0)
+{
+	// Average user's and product's ratings
+	if (verbosity >= 1)
+	{
+		std::cout << "Average user's and product's ratings...";
+	}
+	itpp::vec avg_users_rating(learning.rows());
+	itpp::vec avg_products_rating(learning.cols());
+	avg_users_rating.zeros();
+	avg_products_rating.zeros();
+	avg_ratings(learning, learning_mask, avg_users_rating, avg_products_rating);
+	if (verbosity >= 1)
+	{
+		std::cout << "Done." << std::endl;
+	}
+	
+	if (verbosity >= 2)
+	{
+		std::cout << "Avg. users' ratings: \n" << avg_users_rating << std::endl;
+		std::cout << "Avg. products' ratings: \n" << avg_products_rating << std::endl;
+	}
+
+	// Users' resemblance
+	itpp::mat user_resemblance(learning.rows(), learning.rows());
+	itpp::bmat user_resemblance_mask(user_resemblance.rows(), user_resemblance.cols());
+	user_resemblance.zeros();
+	user_resemblance_mask.zeros();
+
+	// compute users' resemblance on demand
+	user_resemblance_itpp_t u_resemblance(learning, 
+										  user_resemblance, user_resemblance_mask, 
+										  correlation_coeff_resembl_metric_t());
+
+	// Validate algorithms
+	itpp::mat algo_prediction(learning.rows(), learning.cols());
+	for (AlgoInputIterator i = algo_begin; i != algo_end; ++i)
+	{
+		algo_prediction.zeros();
+		if (verbosity >= 1)
+		{
+			std::cout << (*i)->name();
+		}
+		(**i)(algo_prediction, learning, learning_mask, 
+			  u_resemblance, avg_users_rating, avg_products_rating);
+		if (verbosity >= 1)
+		{
+			std::cout << "Done." << std::endl;
+		}
+
+		// RMSE
+		float algo_rmse = rmse(validation, algo_prediction);
+		std::cout << (*i)->name() << ": \n" << algo_prediction << std::endl;
+		std::cout << (*i)->name() << " RMSE: \n" << algo_rmse << std::endl;
+	}
+}
+
 template <class T>
 void cross_validation(const T &triplets, 
 					  const typename T::value_type &max_triplet_values, 
@@ -125,6 +188,7 @@ void cross_validation(const T &triplets,
 	convert_triplets_to_matrix(validation, validation_mask, validation_triplets, 
 							   max_triplet_values, 
 							   users_converter, products_converter);
+	validation.set_size(learning.rows(), learning.cols(), true);
 	//TODO: we should not, actually do this - this will take much time and memory
 	//allocate right amount of memory in the right place!
 	learning.set_size(users_converter.used_idxs(), 
@@ -148,27 +212,6 @@ void cross_validation(const T &triplets,
 		std::cout << "Validation dataset mask: \n" << validation_mask << std::endl;
 	}
 
-	// Average user's and product's ratings
-	if (verbosity >= 1)
-	{
-		std::cout << "Average user's and product's ratings...";
-	}
-	itpp::vec avg_users_rating(learning.rows());
-	itpp::vec avg_product_ratings(learning.cols());
-	avg_users_rating.zeros();
-	avg_product_ratings.zeros();
-	avg_ratings(learning, learning_mask, avg_users_rating, avg_product_ratings);
-	if (verbosity >= 1)
-	{
-		std::cout << "Done." << std::endl;
-	}
-	
-	if (verbosity >= 2)
-	{
-		std::cout << "Avg. users' ratings: \n" << avg_users_rating << std::endl;
-		std::cout << "Avg. products' ratings: \n" << avg_product_ratings << std::endl;
-	}
-	
 	// Users' resemblance
 	itpp::mat user_resemblance(learning.rows(), learning.rows());
 	itpp::bmat user_resemblance_mask(user_resemblance.rows(), user_resemblance.cols());
@@ -180,47 +223,23 @@ void cross_validation(const T &triplets,
 										  user_resemblance, user_resemblance_mask, 
 										  correlation_coeff_resembl_metric_t());
 	
-	// GroupLens
-	if (verbosity >= 1)
-	{
-		std::cout << "GroupLens...";
-	}
-	itpp::mat grouplens_predict(learning.rows(), learning.cols());
-	grouplens_predict.zeros();
-	grouplens(grouplens_predict, learning, learning_mask, 
-			  u_resemblance, avg_users_rating, avg_product_ratings);
-	if (verbosity >= 1)
-	{
-		std::cout << "Done." << std::endl;
-	}
-	
-	// k-NN
-	if (verbosity >= 1)
-	{
-		std::cout << "k-NN...";
-	}
-	itpp::mat knn_predict(learning.rows(), learning.cols());
-	knn_predict.zeros();
-	knn(knn_predict, 2, learning, learning_mask, 
-		user_resemblance, avg_users_rating, avg_product_ratings, verbosity);
-	if (verbosity >= 1)
-	{
-		std::cout << "Done." << std::endl;
-	}
-	
-	// Validation
-	// validation and learning data should be of equal dimensions
-	validation.set_size(learning.rows(), learning.cols(), true);
+	typedef collaborative_filtering_algorithm_t<itpp::mat, itpp::bmat, 
+												user_resemblance_itpp_t, 
+												itpp::vec> cf_itpp_algo_t;
+	typedef grouplens_algo_t<itpp::mat, itpp::bmat, 
+							 user_resemblance_itpp_t, 
+							 itpp::vec> grouplens_itpp_algo_t;
+	typedef knn_grouplens_algo_t<itpp::mat, itpp::bmat, 
+								 user_resemblance_itpp_t, 
+								 itpp::vec> knn_grouplens_itpp_algo_t;
 
-	float grouplens_rmse = rmse(validation, grouplens_predict);
-	float knn_rmse = rmse(validation, knn_predict);
+	std::vector<std::shared_ptr<cf_itpp_algo_t> > algorithms;
+	algorithms.push_back(std::shared_ptr<cf_itpp_algo_t>(new grouplens_itpp_algo_t));
+	algorithms.push_back(std::shared_ptr<cf_itpp_algo_t>(new knn_grouplens_itpp_algo_t));
 
-	// Output results	
-	std::cout << "GroupLens: \n" << grouplens_predict << std::endl;
-	std::cout << "RMSE: \n" << grouplens_rmse << std::endl;
-	
-	std::cout << "k-NN: \n" << knn_predict << std::endl;
-	std::cout << "RMSE: \n" << knn_rmse << std::endl;
+	validate_algorithms(learning, learning_mask, validation, validation_mask,
+					 algorithms.begin(), algorithms.end(),
+					 verbosity);
 }
 
 #endif	// SPBAU_RECOMMENDER_CROSS_VALIDATION_HPP_

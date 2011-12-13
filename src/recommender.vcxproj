@@ -85,6 +85,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="collaborative_filtering.hpp" />
     <ClInclude Include="cross_validation.hpp" />
     <ClInclude Include="dataset_io.hpp" />
     <ClInclude Include="error.hpp" />
