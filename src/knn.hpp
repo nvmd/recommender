@@ -129,7 +129,7 @@ void knn(M &knn_predict, double k,
 		// Estimate i-th user by its nearest neighbours using GroupLens
 		for (int j = 0; j < users_ratings.cols(); ++j)	//products
 		{
-			if (users_ratings_mask(i,j) == false)
+			if (bool(users_ratings_mask(i,j)) == false)
 			{
 				knn_predict(i,j) = grouplens(avg_product_ratings, 
 											nearest_neighbours, 

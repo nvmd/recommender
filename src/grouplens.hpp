@@ -42,7 +42,7 @@ void grouplens(M &grouplens_predict,
 	{
 		for (int j=0; j<users_ratings.cols(); ++j)	// products
 		{
-			if (users_ratings_mask(i,j) == false)
+			if (bool(users_ratings_mask(i,j)) == false)
 			{
 				grouplens_predict(i,j) = grouplens(avg_product_ratings, 
 												   users_ratings, 

@@ -48,7 +48,7 @@ void avg_ratings(const M &users_ratings, const B &users_ratings_mask,
 		size_t valuable = 0;
 		for (int j=0; j<users_ratings.cols(); ++j)
 		{
-			if (users_ratings_mask(i,j) == true)
+			if (bool(users_ratings_mask(i,j)) == true)
 			{
 				++valuable;
 				avg_users_rating[i] += users_ratings(i,j);
@@ -62,7 +62,7 @@ void avg_ratings(const M &users_ratings, const B &users_ratings_mask,
 		size_t valuable = 0;
 		for (int j=0; j<users_ratings.rows(); ++j)
 		{
-			if (users_ratings_mask(j,i) == true)
+			if (bool(users_ratings_mask(j,i)) == true)
 			{
 				++valuable;
 				avg_product_ratings[i] += users_ratings(j,i);

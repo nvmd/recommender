@@ -135,6 +135,8 @@ template <class RatingsT, class ResemblanceT, class ResemblanceMaskT,
 class user_resemblance_t
 {
 public:
+	typedef MetricT metric_type;
+
 	/// Constructor
 	/// \param[in] ratings Ratings matrix
 	/// \param[in,out] resemblance Resemblance matrix
@@ -154,7 +156,7 @@ public:
 	float operator()(size_t user1, size_t user2)
 	{
 		//std::clog << "user_resemblance_t::operator()(user1 = " << user1 << ", user2 = " << user2 << ")" << std::endl;
-		if (m_resemblance_mask(user1, user2) == false)
+		if (bool(m_resemblance_mask(user1, user2)) == false)
 		{
 			//Note: m_resemblance matrix is symmetric - 
 			// we can even store only upper triangle
